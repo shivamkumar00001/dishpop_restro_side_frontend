@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axiosClient from "../../api/AxiosClient";
+import axiosClient from "../../api/axiosClient";
 
 import DishForm from "../../components/menu/EditDishForm";
 
