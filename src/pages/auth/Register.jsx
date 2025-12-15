@@ -4,7 +4,7 @@ import { toast } from "react-hot-toast";
 import { Link, useNavigate } from "react-router-dom";
 import { User, Mail, Phone, MapPin, Lock, Building2 } from "lucide-react";
 import { State, City } from "country-state-city";
-
+import api from "../lib/api";
 export default function Register() {
   const navigate = useNavigate();
 
@@ -54,9 +54,10 @@ export default function Register() {
     setUsernameMsg("");
 
     try {
-      const { data } = await axios.get(
-        `http://localhost:5001/api/auth/check-username?username=${username}`
-      );
+      const { data } = await api.get(
+    "/api/auth/check-username",
+    { params: { username } }
+  );
 
       if (data.available) setUsernameMsg("available");
       else {
