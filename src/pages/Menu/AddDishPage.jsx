@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axiosClient from "../../api/AxiosClient";
+import axiosClient from "../../api/axiosClient";
 
 function makeSlug(text = "") {
   return text
