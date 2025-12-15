@@ -1,0 +1,40 @@
+@import "tailwindcss";
+/* ========================================
+   PROFESSIONAL ORDER MANAGEMENT CSS
+   ======================================== */
+
+@import "tailwindcss";
+
+/* ========================================
+   PROFESSIONAL DARK THEME CSS
+   Fixed for Gray-800/900/950 Palette
+   ======================================== */
+
+/* Custom Scrollbar Styling - Dark Theme */
+.bg-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.bg-scrollbar::-webkit-scrollbar-track {
+  background: #0d1017; /* parent bg */
+}
+
+.bg-scrollbar::-webkit-scrollbar-thumb {
+  background: #0d1017; /* same as bg → visually hidden */
+  border-radius: 10px;
+}
+
+/* Firefox */
+.bg-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #0d1017 #0d1017;
+}
+
+/* Hide scrollbar but keep scroll */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
