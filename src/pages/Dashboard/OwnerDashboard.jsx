@@ -8,7 +8,7 @@ import FeedbackSummary from "./FeedbackSummary";
 import ModelInsights from "./ModelsInsights";
 import LiveOrdersPanel from "./LiveOrderPanel";
 
-import { api } from "../../services/api";
+import  api  from "../../services/api";
 
 export default function Dashboard() {
   const navigate = useNavigate();

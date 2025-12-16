@@ -1,6 +1,10 @@
-// src/utils/socket.js
 import { io } from "socket.io-client";
 
-export const socket = io("http://localhost:5001", {
-  transports: ["websocket"], // ensures websocket transport
+
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL;
+
+export const socket = io(SOCKET_URL, {
+  transports: ["websocket"],
+  withCredentials: true,
+  autoConnect: true,
 });

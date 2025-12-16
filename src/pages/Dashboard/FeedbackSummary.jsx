@@ -1,6 +1,6 @@
 import { Star, TrendingUp, Users } from "lucide-react";
 import { useEffect, useState } from "react";
-import { api } from "../../services/api";
+import  api  from "../../services/api";
 
 export default function FeedbackSummary({ username }) {
   const [summary, setSummary] = useState(null);

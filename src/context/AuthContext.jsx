@@ -1,26 +1,33 @@
-import { createContext, useContext, useState, useEffect } from "react";
-import { api } from "../services/api";
+import { createContext, useContext, useEffect, useState } from "react";
+import api from "../services/api";
 
-const AuthContext = createContext();
+const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [owner, setOwner] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Fetch logged-in owner details
   useEffect(() => {
-    async function fetchOwner() {
+    const fetchOwner = async () => {
       try {
-        const res = await api.get("/auth/me"); // your backend route
-        setOwner(res.data.user);
+        const { data } = await api.get("/auth/me");
+        setOwner(data.user);
       } catch (err) {
-        console.log("Not logged in");
+        // ✅ 401 is NORMAL when not logged in
+        if (err.response?.status !== 401) {
+          console.error("Auth check failed:", err);
+        }
+        setOwner(null);
+      } finally {
+        setLoading(false); // 🔥 always stop loading
       }
-    }
+    };
+
     fetchOwner();
   }, []);
 
   return (
-    <AuthContext.Provider value={{ owner, setOwner }}>
+    <AuthContext.Provider value={{ owner, setOwner, loading }}>
       {children}
     </AuthContext.Provider>
   );

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Mail, Lock } from "lucide-react";
 import { toast } from "react-hot-toast";
-import { api } from "../../services/api";
+import  api  from "../../services/api";
 
 const InputField = ({ icon: Icon, type, name, placeholder, value, onChange, error }) => (
   <div className="space-y-1">

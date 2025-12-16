@@ -19,7 +19,7 @@ export default function OrderPage() {
   const { username } = useParams();
   const { owner } = useAuth();
 
-  const [orders, setOrders] = useState(loadOrders());
+  const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [refreshing, setRefreshing] = useState(false);
@@ -38,10 +38,21 @@ export default function OrderPage() {
     const usernameToFetch = username || owner?.username;
     if (!usernameToFetch) return;
 
+    // Load from localStorage first
+    const cachedOrders = loadOrders();
+    if (cachedOrders && Array.isArray(cachedOrders)) {
+      setOrders(cachedOrders);
+    }
+
     fetchOrders(usernameToFetch)
       .then((res) => {
-        setOrders(res.data);
-        saveOrders(res.data);
+        const fetchedOrders = Array.isArray(res.data) ? res.data : [];
+        setOrders(fetchedOrders);
+        saveOrders(fetchedOrders);
+      })
+      .catch((error) => {
+        console.error("Failed to fetch orders:", error);
+        setOrders([]);
       })
       .finally(() => setLoading(false));
   }, [username, owner]);
@@ -50,28 +61,30 @@ export default function OrderPage() {
      LIVE SOCKET UPDATES
   =============================== */
   useLiveOrders(username || owner?.username, (type, order) => {
-  if (updatingRef.current) return;
+    if (updatingRef.current) return;
 
-  if (type === "created") {
-    setOrders((prev) => {
-      // avoid duplicates
-      if (prev.some((o) => o._id === order._id)) return prev;
-      const updated = [order, ...prev];
-      saveOrders(updated);
-      return updated;
-    });
-  }
+    if (type === "created") {
+      setOrders((prev) => {
+        const prevArray = Array.isArray(prev) ? prev : [];
+        // avoid duplicates
+        if (prevArray.some((o) => o._id === order._id)) return prevArray;
+        const updated = [order, ...prevArray];
+        saveOrders(updated);
+        return updated;
+      });
+    }
 
-  if (type === "updated" || type === "replaced") {
-    setOrders((prev) => {
-      const updated = prev.map((o) =>
-        o._id === order._id ? order : o
-      );
-      saveOrders(updated);
-      return updated;
-    });
-  }
-});
+    if (type === "updated" || type === "replaced") {
+      setOrders((prev) => {
+        const prevArray = Array.isArray(prev) ? prev : [];
+        const updated = prevArray.map((o) =>
+          o._id === order._id ? order : o
+        );
+        saveOrders(updated);
+        return updated;
+      });
+    }
+  });
 
   /* ===============================
      MANUAL REFRESH
@@ -83,8 +96,9 @@ export default function OrderPage() {
 
     try {
       const res = await fetchOrders(usernameToFetch);
-      setOrders(res.data);
-      saveOrders(res.data);
+      const fetchedOrders = Array.isArray(res.data) ? res.data : [];
+      setOrders(fetchedOrders);
+      saveOrders(fetchedOrders);
     } catch (error) {
       console.error("Failed to refresh orders:", error);
     } finally {
@@ -107,8 +121,9 @@ export default function OrderPage() {
       let previousOrders = null;
       
       setOrders((prev) => {
-        previousOrders = [...prev]; // Store for potential rollback
-        const updated = prev.map((o) => 
+        const prevArray = Array.isArray(prev) ? prev : [];
+        previousOrders = [...prevArray]; // Store for potential rollback
+        const updated = prevArray.map((o) => 
           o._id === id ? { ...o, status, updatedAt: new Date().toISOString() } : o
         );
         // Save to localStorage immediately
@@ -170,7 +185,8 @@ export default function OrderPage() {
      FILTER & SEARCH & SORT
   =============================== */
   const processedOrders = useMemo(() => {
-    let filtered = [...orders];
+    const ordersArray = Array.isArray(orders) ? orders : [];
+    let filtered = [...ordersArray];
 
     // Apply date filter
     filtered = filtered.filter(filterByDate);
@@ -217,8 +233,8 @@ export default function OrderPage() {
 
     return filtered;
   }, [orders, searchQuery, sortBy, filterStatus, filterByDate]);
+  
   console.log("OrderPage room:", username);
-
 
   /* ===============================
      STATUS GROUPING

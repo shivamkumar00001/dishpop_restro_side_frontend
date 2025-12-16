@@ -3,13 +3,16 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(), // ✅ use the plugin you imported
+  ],
   server: {
     proxy: {
       "/api": {
-        target: "http://localhost:5000",
+        target: "https://dishpop-restro-side-backend.onrender.com",
         changeOrigin: true,
-        secure: false,
+        secure: true,
       },
     },
   },

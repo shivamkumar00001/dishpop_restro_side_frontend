@@ -1,7 +1,7 @@
 // src/components/Navbar.jsx
 import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { api } from "../services/api";
+import  api  from "../services/api";
 import logo from "../assets/logo.svg";
 import { Menu, X, ChevronDown } from "lucide-react";
 

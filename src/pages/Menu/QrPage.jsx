@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { ArrowLeft, Download, Copy, Printer } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
-import { api } from "../../services/api";
+import  api  from "../../services/api";
 import qrService from "../../services/qr.service.js";
 
 const QrPage = () => {
