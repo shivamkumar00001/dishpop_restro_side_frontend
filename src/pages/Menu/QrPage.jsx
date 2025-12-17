@@ -44,12 +44,12 @@ const QrPage = () => {
   useEffect(() => {
     if (!username) return;
 
-    const qrLink = `http://localhost:5173/${username}`;
+    const qrLink = `https://dishpop-user-side-frontend-lw9q.vercel.app/${username}`;
     qrService.generateQR(qrLink).then(setQrImage);
   }, [username]);
 
   const qrLink = username
-    ? `http://localhost:5173/${username}`
+    ? `https://dishpop-user-side-frontend-lw9q.vercel.app/${username}`
     : "";
 
   /* =====================================================

@@ -1,11 +1,12 @@
 import { useState } from "react";
-import axios from "axios";
 import { toast } from "react-hot-toast";
 import { useNavigate, useLocation } from "react-router-dom";
+import api from "../../services/api"; // ✅ CENTRAL API (ENV-BASED)
 
 export default function ResetPassword() {
   const navigate = useNavigate();
   const location = useLocation();
+
   const email = location.state?.email || "";
   const otp = location.state?.otp || "";
 
@@ -15,21 +16,33 @@ export default function ResetPassword() {
 
   const handleReset = async (e) => {
     e.preventDefault();
-    if (password !== confirmPassword) return toast.error("Passwords do not match!");
+
+    if (!email || !otp) {
+      toast.error("Invalid or expired reset session");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match!");
+      return;
+    }
 
     setLoading(true);
     try {
-      const res = await axios.post(
-        "http://localhost:5001/api/auth/reset-password",
-        { email, otp, password, confirmPassword },
-        { withCredentials: true }
-      );
+      const { data } = await api.post("/auth/reset-password", {
+        email,
+        otp,
+        password,
+        confirmPassword,
+      });
 
-      toast.success(res.data.message || "Password reset successfully!");
+      toast.success(data.message || "Password reset successfully!");
       navigate("/login");
 
     } catch (err) {
-      toast.error(err.response?.data?.message || "Reset failed!");
+      toast.error(
+        err.response?.data?.message || "Reset failed!"
+      );
     } finally {
       setLoading(false);
     }
@@ -41,6 +54,7 @@ export default function ResetPassword() {
         <h2 className="text-2xl font-bold text-white text-center mb-6">
           Reset Your Password 🔐
         </h2>
+
         <form onSubmit={handleReset} className="space-y-4">
           <div>
             <label className="text-gray-300 text-sm">New Password</label>
@@ -53,6 +67,7 @@ export default function ResetPassword() {
               required
             />
           </div>
+
           <div>
             <label className="text-gray-300 text-sm">Confirm Password</label>
             <input
@@ -64,6 +79,7 @@ export default function ResetPassword() {
               required
             />
           </div>
+
           <button
             type="submit"
             disabled={loading}

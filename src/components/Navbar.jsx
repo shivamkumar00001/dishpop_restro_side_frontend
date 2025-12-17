@@ -75,7 +75,7 @@ export default function Navbar() {
             >
               {user?.photo ? (
                 <img
-                  src={`http://localhost:5001${user.photo}`}
+               src={`${import.meta.env.VITE_API_ORIGIN}${user.photo}`}
                   alt="Profile"
                   className="w-8 h-8 rounded-full object-cover"
                 />

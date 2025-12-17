@@ -1,7 +1,7 @@
 import { useState } from "react";
-import axios from "axios";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
+import api from "../../services/api"; // ✅ CENTRAL API (ENV-BASED)
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
@@ -13,17 +13,15 @@ const ForgotPassword = () => {
     setLoading(true);
 
     try {
-      const res = await axios.post(
-        "http://localhost:5001/api/auth/forgot-password",
-        { email },
-        { withCredentials: true }
-      );
+      const { data } = await api.post("/auth/forgot-password", { email });
 
-      toast.success(res.data.message || "OTP sent to your email!");
+      toast.success(data.message || "OTP sent to your email!");
       navigate("/verify-otp", { state: { email } });
 
     } catch (err) {
-      toast.error(err.response?.data?.message || "Something went wrong!");
+      toast.error(
+        err.response?.data?.message || "Something went wrong!"
+      );
     } finally {
       setLoading(false);
     }
@@ -35,6 +33,7 @@ const ForgotPassword = () => {
         <h2 className="text-2xl font-bold text-white text-center mb-6">
           Forgot Password 🔐
         </h2>
+
         <form onSubmit={handleForgot} className="space-y-4">
           <div>
             <label className="text-gray-300 text-sm">Email Address</label>
@@ -47,6 +46,7 @@ const ForgotPassword = () => {
               required
             />
           </div>
+
           <button
             type="submit"
             disabled={loading}

@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import axios from "axios";
 import { toast } from "react-hot-toast";
+import api from "../../services/api"; // ✅ CENTRAL API (ENV-BASED)
 
 const VerifyOTP = () => {
   const navigate = useNavigate();
   const location = useLocation();
+
   const email = location.state?.email || "";
 
   const [otp, setOTP] = useState("");
@@ -13,21 +14,31 @@ const VerifyOTP = () => {
 
   const handleVerify = async (e) => {
     e.preventDefault();
-    if (!otp) return toast.error("Enter OTP");
+
+    if (!email) {
+      toast.error("Invalid or expired session");
+      return;
+    }
+
+    if (!otp) {
+      toast.error("Enter OTP");
+      return;
+    }
 
     setLoading(true);
     try {
-     const res = await axios.post(
-  "http://localhost:5001/api/auth/verify-forgot-otp", // corrected endpoint
-  { email, otp },
-  { withCredentials: true }
-);
+      const { data } = await api.post("/auth/verify-forgot-otp", {
+        email,
+        otp,
+      });
 
-      toast.success(res.data.message || "OTP verified!");
+      toast.success(data.message || "OTP verified!");
       navigate("/reset-password", { state: { email, otp } });
 
     } catch (err) {
-      toast.error(err.response?.data?.message || "Invalid OTP");
+      toast.error(
+        err.response?.data?.message || "Invalid OTP"
+      );
     } finally {
       setLoading(false);
     }
@@ -39,6 +50,7 @@ const VerifyOTP = () => {
         <h2 className="text-2xl font-bold text-white text-center mb-6">
           Verify OTP 🔐
         </h2>
+
         <form onSubmit={handleVerify} className="space-y-4">
           <div>
             <label className="text-gray-300 text-sm">OTP</label>
@@ -51,6 +63,7 @@ const VerifyOTP = () => {
               required
             />
           </div>
+
           <button
             type="submit"
             disabled={loading}

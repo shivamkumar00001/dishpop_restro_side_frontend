@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Mail, Lock } from "lucide-react";
 import { toast } from "react-hot-toast";
-import  api  from "../../services/api";
+import api from "../../services/api";
+import { useAuth } from "../../context/AuthContext";
 
 const InputField = ({ icon: Icon, type, name, placeholder, value, onChange, error }) => (
   <div className="space-y-1">
@@ -31,24 +32,25 @@ const InputField = ({ icon: Icon, type, name, placeholder, value, onChange, erro
 
 export default function Login() {
   const navigate = useNavigate();
+  const { setOwner } = useAuth(); // 🔥 IMPORTANT
 
   const [formData, setFormData] = useState({
     identifier: "",
-    password: ""
+    password: "",
   });
 
   const [errors, setErrors] = useState({
     identifier: "",
     password: "",
-    general: ""
+    general: "",
   });
 
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
-    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     if (errors[e.target.name]) {
-      setErrors(prev => ({ ...prev, [e.target.name]: "", general: "" }));
+      setErrors((prev) => ({ ...prev, [e.target.name]: "", general: "" }));
     }
   };
 
@@ -62,20 +64,23 @@ export default function Login() {
     if (!formData.password.trim()) newErrors.password = "Password required";
 
     if (Object.keys(newErrors).length > 0) {
-      setErrors(prev => ({ ...prev, ...newErrors }));
+      setErrors((prev) => ({ ...prev, ...newErrors }));
       return;
     }
 
     setLoading(true);
 
     try {
-      // const res = await api.post("/auth/login", formData, { withCredentials: true });
- const res = await api.post("/auth/login", formData, { withCredentials: true });
-
+      // 🔐 LOGIN
+      const res = await api.post("/auth/login", formData);
 
       toast.success(res.data.message || "Welcome back!");
 
-      const username = res.data.user?.username;
+      // 🔥 IMMEDIATELY SYNC AUTH STATE
+      const me = await api.get("/auth/me");
+      setOwner(me.data.user);
+
+      const username = me.data.user?.username;
 
       if (!username) {
         toast.error("Unexpected error: username missing");
@@ -84,7 +89,7 @@ export default function Login() {
 
       localStorage.setItem("username", username);
 
-      // Redirect from protected route
+      // 🔁 REDIRECT LOGIC
       let redirect = localStorage.getItem("redirectAfterLogin");
 
       if (redirect) {
@@ -98,7 +103,7 @@ export default function Login() {
         return;
       }
 
-      // DEFAULT REDIRECT
+      // ✅ DEFAULT DASHBOARD
       navigate(`/${username}/dashboard`, { replace: true });
 
     } catch (err) {
@@ -106,13 +111,13 @@ export default function Login() {
       const backendMessage = err.response?.data?.message;
 
       if (backendErrors) {
-        setErrors(prev => ({ ...prev, ...backendErrors }));
+        setErrors((prev) => ({ ...prev, ...backendErrors }));
       } else if (backendMessage) {
-        setErrors(prev => ({ ...prev, general: backendMessage }));
+        setErrors((prev) => ({ ...prev, general: backendMessage }));
       }
 
       toast.error(backendMessage || "Login failed");
-      setFormData(prev => ({ ...prev, password: "" }));
+      setFormData((prev) => ({ ...prev, password: "" }));
 
     } finally {
       setLoading(false);
@@ -121,21 +126,18 @@ export default function Login() {
 
   return (
     <div className="relative min-h-screen flex items-center justify-center bg-[#050509] text-white px-4">
-
       <div className="pointer-events-none fixed inset-0 -z-10">
         <div className="absolute -top-32 -left-10 h-72 w-72 rounded-full bg-[#4f46e5]/20 blur-[100px]" />
         <div className="absolute bottom-0 right-0 h-[450px] w-[450px] rounded-full bg-[#22c55e]/10 blur-[110px]" />
       </div>
 
       <div className="w-full max-w-md bg-white/5 border border-white/10 backdrop-blur-2xl rounded-[28px] shadow-[0_24px_120px_rgba(0,0,0,0.8)] p-10">
-
         <div className="text-center mb-8">
           <h1 className="text-3xl font-semibold">Welcome back</h1>
           <p className="text-xs text-gray-400 mt-1">Login to continue</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-
           <InputField
             icon={Mail}
             type="text"
