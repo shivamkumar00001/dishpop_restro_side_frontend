@@ -13,7 +13,7 @@ export default function PrivacyPolicy() {
             Last updated: {new Date().getFullYear()}
           </p>
           <p className="text-gray-300 leading-relaxed">
-            AR Restro (“AR Restro”, “we”, “our”, or “us”) values your privacy and
+            Dishpop (“Dispop”, “we”, “our”, or “us”) values your privacy and
             is committed to protecting your personal data. This Privacy Policy
             explains how we collect, use, disclose, and safeguard your
             information when you use our platform, services, websites, and
@@ -97,7 +97,7 @@ export default function PrivacyPolicy() {
               When required by law, legal process, or government request
             </li>
             <li>
-              To protect the rights, safety, and security of AR Restro, users,
+              To protect the rights, safety, and security of Dishpop, users,
               or the public
             </li>
             <li>

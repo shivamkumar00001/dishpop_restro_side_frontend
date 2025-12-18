@@ -12,36 +12,32 @@ export default function TermsOfService() {
           Last updated: {new Date().getFullYear()}
         </p>
 
-        {/* Introduction */}
+        {/* 1. Introduction */}
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold">1. Introduction</h2>
           <p className="text-gray-400">
-            Welcome to <strong>AR Restro</strong>. These Terms and Conditions
+            Welcome to <strong>Dishpop</strong>. These Terms and Conditions
             ("Terms") govern your access to and use of our platform, services,
             applications, and technologies related to augmented reality dining
-            solutions. By accessing or using AR Restro, you agree to be bound by
+            solutions. By accessing or using Dishpop, you agree to be bound by
             these Terms.
           </p>
         </section>
 
-        {/* Eligibility */}
+        {/* 2. Eligibility */}
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold">2. Eligibility</h2>
           <p className="text-gray-400">
             You must be at least 18 years old and legally capable of entering
-            into a binding agreement to use our services. By registering on AR
-            Restro, you represent that all information you provide is accurate
+            into a binding agreement to use our services. By registering on
+            Dishpop, you represent that all information you provide is accurate
             and complete.
           </p>
         </section>
 
-        {/* Services */}
+        {/* 3. Services */}
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold">3. Services Provided</h2>
-          <p className="text-gray-400">
-            AR Restro provides restaurant-focused solutions including but not
-            limited to:
-          </p>
           <ul className="list-disc list-inside text-gray-400 space-y-2">
             <li>Augmented reality menu visualization</li>
             <li>AI-powered insights and analytics</li>
@@ -50,216 +46,121 @@ export default function TermsOfService() {
           </ul>
         </section>
 
-        {/* Account Responsibilities */}
+        {/* 4. Account */}
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold">4. Account Responsibilities</h2>
           <p className="text-gray-400">
             You are responsible for maintaining the confidentiality of your
-            account credentials. You agree to notify us immediately of any
-            unauthorized access or security breach related to your account.
+            account credentials and for all activities under your account.
           </p>
         </section>
 
-        {/* Acceptable Use */}
+        {/* 5. Acceptable Use */}
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold">5. Acceptable Use Policy</h2>
-          <p className="text-gray-400">You agree not to:</p>
           <ul className="list-disc list-inside text-gray-400 space-y-2">
-            <li>Use the platform for unlawful or fraudulent purposes</li>
-            <li>Attempt to access unauthorized systems or data</li>
-            <li>Disrupt or interfere with platform security or performance</li>
-            <li>Upload malicious code or harmful content</li>
+            <li>Unlawful or fraudulent activity</li>
+            <li>Unauthorized system access</li>
+            <li>Platform disruption or abuse</li>
+            <li>Uploading malicious content</li>
           </ul>
         </section>
 
-        {/* Intellectual Property */}
+        {/* 6. Intellectual Property */}
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold">6. Intellectual Property</h2>
           <p className="text-gray-400">
-            All content, trademarks, logos, software, and technology used on AR
-            Restro are the exclusive property of AR Restro or its licensors. You
-            may not copy, modify, distribute, or exploit any part of the
-            platform without written permission.
+            All content, trademarks, logos, and technology on Dishpop are the
+            exclusive property of Dishpop or its licensors.
           </p>
         </section>
 
-        {/* Payments */}
+        {/* 7. Payments */}
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold">7. Payments & Subscriptions</h2>
           <p className="text-gray-400">
-            Certain features may require a paid subscription. Pricing, billing
-            cycles, and payment terms will be disclosed at the time of purchase.
-            Failure to pay may result in suspension or termination of services.
+            Certain features may require payment. Failure to pay may result in
+            suspension or termination.
           </p>
         </section>
 
-        {/* Termination */}
+        {/* 8. Termination */}
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold">8. Termination</h2>
           <p className="text-gray-400">
-            We reserve the right to suspend or terminate your account if you
-            violate these Terms or misuse the platform. You may stop using the
-            service at any time.
+            Dishpop may suspend or terminate accounts that violate these Terms.
           </p>
         </section>
 
-        {/* Disclaimer */}
+        {/* 9. Disclaimer */}
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold">9. Disclaimer</h2>
           <p className="text-gray-400">
-            AR Restro is provided on an "as is" and "as available" basis.
-            We make no warranties regarding uninterrupted service, accuracy, or
-            reliability of results obtained through the platform.
+            Dishpop is provided “as is” without warranties of any kind.
           </p>
         </section>
 
-        {/* Limitation of Liability */}
+        {/* 10. Liability */}
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold">10. Limitation of Liability</h2>
           <p className="text-gray-400">
-            To the maximum extent permitted by law, AR Restro shall not be
-            liable for any indirect, incidental, or consequential damages
-            arising from your use of the platform.
+            Dishpop shall not be liable for indirect or consequential damages.
           </p>
         </section>
 
-        {/* Governing Law */}
+        {/* 11. Law */}
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold">11. Governing Law</h2>
           <p className="text-gray-400">
-            These Terms shall be governed by and interpreted in accordance with
-            the laws of India, without regard to conflict of law principles.
+            These Terms are governed by the laws of India.
           </p>
         </section>
 
-        {/* Changes */}
+        {/* 12–22 Additional Clauses */}
         <section className="space-y-4">
-          <h2 className="text-2xl font-semibold">12. Changes to Terms</h2>
+          <h2 className="text-2xl font-semibold">12. Data Protection & Privacy</h2>
           <p className="text-gray-400">
-            We reserve the right to update these Terms at any time. Continued
-            use of the platform after changes indicates acceptance of the
-            revised Terms.
+            Dishpop processes data in accordance with applicable data protection
+            laws. Refer to our Privacy Policy for details.
           </p>
         </section>
 
-        {/* Contact */}
         <section className="space-y-4">
-          <h2 className="text-2xl font-semibold">13. Contact Us</h2>
+          <h2 className="text-2xl font-semibold">13. Cookies</h2>
           <p className="text-gray-400">
-            If you have any questions regarding these Terms, please contact us
-            at:
+            Dishpop uses cookies to improve platform performance and experience.
           </p>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-2xl font-semibold">14. Restaurant Partner Obligations</h2>
+          <p className="text-gray-400">
+            Restaurant partners are responsible for content accuracy and legal
+            compliance.
+          </p>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-2xl font-semibold">15. Indemnification</h2>
+          <p className="text-gray-400">
+            You agree to indemnify Dishpop against claims arising from misuse.
+          </p>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-2xl font-semibold">16. Force Majeure</h2>
+          <p className="text-gray-400">
+            Dishpop is not liable for events beyond reasonable control.
+          </p>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-2xl font-semibold">17. Contact</h2>
           <p className="text-gray-300 font-medium">
-            Email: support@arrestro.com
-          </p>
+            Email: dispopofficial@gmail.com <br />
+           </p>
         </section>
       </div>
     </div>
   );
 }
-
-
-        {/* Data Protection & GDPR */}
-        <section className="space-y-4">
-          <h2 className="text-2xl font-semibold">14. Data Protection & Privacy (GDPR)</h2>
-          <p className="text-gray-400">
-            AR Restro is committed to protecting your personal data. We process
-            data in accordance with applicable data protection laws, including
-            GDPR principles such as lawfulness, transparency, purpose limitation,
-            and data minimization.
-          </p>
-          <p className="text-gray-400">
-            For detailed information on how we collect, store, and use personal
-            data, please refer to our Privacy Policy.
-          </p>
-        </section>
-
-        {/* Cookies */}
-        <section className="space-y-4">
-          <h2 className="text-2xl font-semibold">15. Cookies Policy</h2>
-          <p className="text-gray-400">
-            AR Restro uses cookies and similar technologies to enhance user
-            experience, analyze usage, and improve platform performance. You
-            may manage cookie preferences through your browser settings.
-          </p>
-        </section>
-
-        {/* Refund & Cancellation */}
-        <section className="space-y-4">
-          <h2 className="text-2xl font-semibold">16. Refund & Cancellation Policy</h2>
-          <p className="text-gray-400">
-            Subscription fees, once paid, are generally non-refundable unless
-            otherwise stated. Refunds may be considered in exceptional cases at
-            the sole discretion of AR Restro.
-          </p>
-          <p className="text-gray-400">
-            You may cancel your subscription at any time. Access to paid
-            features will remain active until the end of the billing cycle.
-          </p>
-        </section>
-
-        {/* Restaurant Partner Agreement */}
-        <section className="space-y-4">
-          <h2 className="text-2xl font-semibold">17. Restaurant Partner Obligations (B2B)</h2>
-          <p className="text-gray-400">
-            Restaurants partnering with AR Restro are responsible for ensuring
-            the accuracy of menu data, pricing, images, and AR content provided
-            on the platform.
-          </p>
-          <p className="text-gray-400">
-            Partners agree not to upload misleading, illegal, or infringing
-            content and must comply with all applicable food safety and
-            consumer protection laws.
-          </p>
-        </section>
-
-        {/* User vs Restaurant Terms */}
-        <section className="space-y-4">
-          <h2 className="text-2xl font-semibold">18. User-Side vs Restaurant-Side Terms</h2>
-          <p className="text-gray-400">
-            AR Restro may offer different terms, features, and obligations for
-            end-users and restaurant partners. In case of conflict, specific
-            partner agreements shall prevail over general user terms.
-          </p>
-        </section>
-
-        {/* Indemnification */}
-        <section className="space-y-4">
-          <h2 className="text-2xl font-semibold">19. Indemnification</h2>
-          <p className="text-gray-400">
-            You agree to indemnify and hold harmless AR Restro, its affiliates,
-            directors, and employees from any claims, damages, or losses arising
-            out of your misuse of the platform or violation of these Terms.
-          </p>
-        </section>
-
-        {/* Force Majeure */}
-        <section className="space-y-4">
-          <h2 className="text-2xl font-semibold">20. Force Majeure</h2>
-          <p className="text-gray-400">
-            AR Restro shall not be liable for failure or delay in performance
-            caused by events beyond reasonable control, including natural
-            disasters, government actions, or technical failures.
-          </p>
-        </section>
-
-        {/* Entire Agreement */}
-        <section className="space-y-4">
-          <h2 className="text-2xl font-semibold">21. Entire Agreement</h2>
-          <p className="text-gray-400">
-            These Terms constitute the entire agreement between you and AR
-            Restro regarding use of the platform and supersede any prior
-            agreements or understandings.
-          </p>
-        </section>
-
-        {/* Contact Extended */}
-        <section className="space-y-4">
-          <h2 className="text-2xl font-semibold">22. Legal & Compliance Contact</h2>
-          <p className="text-gray-400">
-            For legal, compliance, or data protection inquiries, contact:
-          </p>
-          <p className="text-gray-300 font-medium">
-            Email: legal@arrestro.com
-          </p>
-        </section>
