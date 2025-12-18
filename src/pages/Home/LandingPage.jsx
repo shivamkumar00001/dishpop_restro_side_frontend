@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Camera, Utensils, TrendingUp, Users, ChevronRight } from 'lucide-react';
 import DynamicGradientText from '../../components/DynamicGradient';
 import TypewriterText from '../../components/TypeWriter';
+import { Link } from "react-router-dom";
+
 
 const LandingPage = () => {
   const navigate = useNavigate();
@@ -130,7 +132,7 @@ const LandingPage = () => {
   ];
 
   const handleGetStarted = () => {
-    navigate('/register');
+    navigate('/#');
   };
 
   return (
@@ -304,16 +306,27 @@ const LandingPage = () => {
       </section>
 
       {/* Footer */}
-      <footer className="py-8 px-4 border-t border-gray-800">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center text-gray-500 text-sm">
-          <p>© 2025 AR Restro. All rights reserved.</p>
-          <div className="flex gap-6 mt-4 md:mt-0">
-            <a href="#" className="hover:text-cyan-400 transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-cyan-400 transition-colors">Terms of Service</a>
-            <a href="#" className="hover:text-cyan-400 transition-colors">Contact</a>
-          </div>
-        </div>
-      </footer>
+     <footer className="py-8 px-4 border-t border-gray-800">
+  <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center text-gray-500 text-sm">
+    <p>© 2025 AR Restro. All rights reserved.</p>
+    <div className="flex gap-6 mt-4 md:mt-0">
+      <Link to="/privacy-policy" className="hover:text-cyan-400 transition-colors">
+        Privacy Policy
+      </Link>
+      <Link to="/contact" className="hover:text-cyan-400 transition-colors">
+        Contact
+      </Link>
+
+      <Link to="/about" className="hover:text-cyan-400 transition-colors">
+        About us
+      </Link>
+      <Link to="/terms-of-service" className="hover:text-cyan-400 transition-colors">
+        Terms Policy
+      </Link>
+    </div>
+  </div>
+</footer>
+
     </div>
   );
 };

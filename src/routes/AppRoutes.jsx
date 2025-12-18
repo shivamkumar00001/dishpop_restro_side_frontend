@@ -1,11 +1,12 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import ProtectedRoute from "../components/ProtectedRoute";
 
-/* ---------- LANDING / PUBLIC ---------- */
+/* ---------- PUBLIC / LANDING ---------- */
 import LandingPage from "../pages/Home/LandingPage";
 import About from "../pages/Home/About";
 import Contact from "../pages/Home/Contact";
 import PrivacyPolicy from "../pages/Home/PrivacyPolicy";
+import TermsOfService from "../pages/Home/Terms";
 
 /* ---------- AUTH ---------- */
 import Register from "../pages/auth/Register";
@@ -38,11 +39,13 @@ export default function AppRoutes() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/about" element={<About />} />
       <Route path="/contact" element={<Contact />} />
-<Route path="/privacy-policy" element={<PrivacyPolicy />} />
+      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+      <Route path="/terms-of-service" element={<TermsOfService />} />
 
+      {/* ================= AUTH ================= */}
       <Route path="/register" element={<Register />} />
       <Route path="/login" element={<Login />} />
-      <Route path="/forget" element={<Forget />} />
+      <Route path="/forget-password" element={<Forget />} />
       <Route path="/verify-otp" element={<VerifyOTP />} />
       <Route path="/reset-password" element={<ResetPassword />} />
 
