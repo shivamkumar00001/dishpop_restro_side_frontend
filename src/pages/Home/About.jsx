@@ -36,7 +36,7 @@ const About = () => {
         {/* Header */}
         <div className="text-center space-y-4">
           <h1 className="text-5xl font-bold">
-            About <span className="text-cyan-400">AR Restro</span>
+            About <span className="text-cyan-400">Dishpop</span>
           </h1>
           <p className="text-gray-400 max-w-3xl mx-auto text-lg">
             AR Restro is transforming the restaurant industry by combining
@@ -88,7 +88,7 @@ const About = () => {
         <div className="text-center">
           <p className="text-gray-400 text-lg">
             Join the future of dining with{" "}
-            <span className="text-cyan-400 font-semibold">AR Restro</span>.
+            <span className="text-cyan-400 font-semibold">Dishpop</span>.
           </p>
         </div>
       </div>
