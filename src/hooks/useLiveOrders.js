@@ -1,7 +1,14 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { socket } from "../utils/socket";
 
 export default function useLiveOrders(username, callback) {
+  const callbackRef = useRef(callback);
+
+  // keep latest callback without retriggering socket effect
+  useEffect(() => {
+    callbackRef.current = callback;
+  }, [callback]);
+
   useEffect(() => {
     console.log("🟡 useLiveOrders effect triggered");
     console.log("➡️ username received:", username);
@@ -16,17 +23,16 @@ export default function useLiveOrders(username, callback) {
 
     const onCreated = (order) => {
       console.log("📥 SOCKET EVENT: created", order);
-      callback("created", order);
+      callbackRef.current?.("created", order);
     };
 
     const onUpdated = (order) => {
       console.log("📥 SOCKET EVENT: updated", order);
-      callback("updated", order);
+      callbackRef.current?.("updated", order);
     };
 
     console.log("🧲 Attaching socket listeners");
 
-    // ✅ support BOTH contracts
     socket.on("order:created", onCreated);
     socket.on("order-created", onCreated);
 
@@ -42,5 +48,5 @@ export default function useLiveOrders(username, callback) {
       socket.off("order:updated", onUpdated);
       socket.off("order-updated", onUpdated);
     };
-  }, [username, callback]);
+  }, [username]);
 }

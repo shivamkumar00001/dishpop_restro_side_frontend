@@ -5,8 +5,12 @@ import ProtectedRoute from "../components/ProtectedRoute";
 import LandingPage from "../pages/Home/LandingPage";
 import About from "../pages/Home/About";
 import Contact from "../pages/Home/Contact";
+<<<<<<< Updated upstream
 import PrivacyPolicy from "../pages/Home/PrivacyPolicy";
 import TermsOfService from "../pages/Home/Terms";
+=======
+// import PrivacyPolicy from "../pages/Home/PrivacyPolicy";
+>>>>>>> Stashed changes
 
 /* ---------- AUTH ---------- */
 import Register from "../pages/auth/Register";
@@ -30,6 +34,9 @@ import OrdersPage from "../pages/ordermanage/OrderPage";
 
 /* ---------- 404 ---------- */
 import NotFound from "../pages/NotFound/NotFound";
+import CategoriesPage from "../pages/Menu/CategoriesPage";
+import AddonManager from "../pages/Addons/AddonManager";
+
 
 export default function AppRoutes() {
   return (
@@ -39,8 +46,12 @@ export default function AppRoutes() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/about" element={<About />} />
       <Route path="/contact" element={<Contact />} />
+<<<<<<< Updated upstream
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/terms-of-service" element={<TermsOfService />} />
+=======
+{/* <Route path="/privacy-policy" element={<PrivacyPolicy />} />*/}
+>>>>>>> Stashed changes
 
       {/* ================= AUTH ================= */}
       <Route path="/register" element={<Register />} />
@@ -67,9 +78,22 @@ export default function AppRoutes() {
 
       </Route>
 
+      <Route path="/:username/categories" element={<CategoriesPage />} />
+
+
       {/* ================= 404 ================= */}
       <Route path="/404" element={<NotFound />} />
       <Route path="*" element={<Navigate to="/404" replace />} />
+
+      <Route path="/:username/addons" element={<AddonManager/>} />
+
+
+      <Route
+  path="/:username/menu/categories"
+  element={<CategoriesPage/>}
+/>
+
+
 
     </Routes>
   );

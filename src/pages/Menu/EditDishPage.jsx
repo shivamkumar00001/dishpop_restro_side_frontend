@@ -1,70 +1,75 @@
-// src/pages/Menu/EditDishPage.jsx
-
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axiosClient from "../../api/axiosClient";
-
-import DishForm from "../../components/menu/EditDishForm";
+import menuApi from "../../api/menuApi";
+import DishForm from "../../components/menu/DishForm";
 
 export default function EditDishPage() {
   const { username, id } = useParams();
   const navigate = useNavigate();
-
-  const [initial, setInitial] = useState(null);
+  const [dish, setDish] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let cancelled = false;
-
-    (async () => {
-      setLoading(true);
-
+    const fetchDish = async () => {
       try {
-        const res = await axiosClient.get(
-          `/restaurants/${username}/dishes/${id}`
-        );
-
-        const data = res.data?.data ?? res.data;
-
-        if (!cancelled) setInitial(data);
-      } catch (err) {
-        console.error("Failed to load dish", err);
+        const response = await menuApi.getDish(username, id);
+        setDish(response.data.data);
+      } catch (error) {
+        console.error("Failed to fetch dish:", error);
+        alert("Failed to load dish");
+        navigate(`/${username}/menu`);
       } finally {
-        if (!cancelled) setLoading(false);
+        setLoading(false);
       }
-    })();
-
-    return () => {
-      cancelled = true;
     };
-  }, [username, id]);
+
+    fetchDish();
+  }, [username, id, navigate]);
+
+  const handleSuccess = () => {
+    navigate(`/${username}/menu`);
+  };
 
   if (loading) {
-    return <div className="p-6 text-white">Loading dish...</div>;
+    return (
+      <div className="min-h-screen bg-[#080B10] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500 mx-auto"></div>
+          <p className="text-white mt-4">Loading dish...</p>
+        </div>
+      </div>
+    );
   }
 
-  if (!initial) {
-    return <div className="p-6 text-white">Dish not found</div>;
+  if (!dish) {
+    return (
+      <div className="min-h-screen bg-[#080B10] flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-white">Dish not found</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-black p-4 sm:p-6">
+    <div className="min-h-screen bg-[#080B10] py-8 px-4">
       <div className="max-w-5xl mx-auto">
-        <h1 className="text-2xl font-bold text-white mb-6">Edit Dish</h1>
+        {/* Back Button */}
+        <button
+          onClick={() => navigate(-1)}
+          className="mb-6 px-4 py-2 text-gray-400 hover:text-white transition-colors flex items-center gap-2"
+        >
+          ← Back to Menu
+        </button>
 
-        <div className="bg-zinc-900 rounded-lg border border-zinc-800 p-6">
-          <DishForm
-            mode="edit"
-            initial={initial}
-
-            // ✅ FIXED: correct prop name
-            restaurantId={username}
-
-            dishId={id}
-            autosaveKey={`draft:restaurant:${username}:dish:${id}`}
-            onSuccess={() => navigate(-1)}
-          />
-        </div>
+        {/* Form */}
+        <DishForm
+          mode="edit"
+          initial={dish}
+          username={username}
+          dishId={id}
+          onSuccess={handleSuccess}
+        />
       </div>
     </div>
   );

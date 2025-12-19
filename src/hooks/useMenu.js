@@ -1,224 +1,173 @@
-import { useState, useEffect, useMemo } from "react";
-import menuApi from "../api/menuApi";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams } from "react-router-dom";
+import menuApi from "../api/menuApi";
 
 export default function useMenu() {
   const { username } = useParams();
-  const RESTAURANT_ID = username;
 
-  /* ================= CORE STATE ================= */
+  // State
   const [dishes, setDishes] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [statuses] = useState(["All Statuses", "Available", "Unavailable"]);
-  const [statistics, setStatistics] = useState(null);
-
-  /* ================= UI STATE ================= */
-  const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("All Categories");
-  const [selectedStatus, setSelectedStatus] = useState("All Statuses");
-  const [sortBy, setSortBy] = useState("name-asc");
-
-  /* ================= LOADING ================= */
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  /* ============================================================
-     1️⃣ FETCH MENU
-  ============================================================ */
-  const fetchMenu = async () => {
-    if (!RESTAURANT_ID) return;
+  // Filters
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedStatus, setSelectedStatus] = useState("All");
+  const [sortBy, setSortBy] = useState("name-asc");
 
-    setLoading(true);
-    setError(null);
-
+  // Load menu data
+  const loadMenu = useCallback(async () => {
     try {
-      const res = await menuApi.getMenu(RESTAURANT_ID);
-      const data = res.data?.data ?? {};
-      const list = data.dishes ?? [];
+      setLoading(true);
+      setError(null);
 
-      setDishes(list);
+      const response = await menuApi.getMenu(username);
+      const data = response.data.data;
 
-      setCategories([
-        "All Categories",
-        ...new Set(list.map((d) => d.category || "Uncategorized")),
-      ]);
+      // Extract dishes from menu structure
+      const allDishes = data.menu.flatMap((cat) => cat.dishes);
+      setDishes(allDishes);
 
-      setStatistics({
-        total: list.length,
-        available: list.filter((d) => d.available).length,
-        byStatus: {
-          ready: list.length,
-          processing: 0,
-        },
-      });
-    } catch (e) {
-      console.error("Menu fetch error:", e);
-      setError("Failed to load menu");
+      // Extract unique categories
+      const uniqueCategories = [
+        "All",
+        ...data.categories.map((c) => c.name),
+      ];
+      setCategories(uniqueCategories);
+    } catch (err) {
+      console.error("Failed to load menu:", err);
+      setError(err.response?.data?.message || "Failed to load menu");
     } finally {
       setLoading(false);
     }
-  };
+  }, [username]);
 
   useEffect(() => {
-    fetchMenu();
-  }, [RESTAURANT_ID]);
+    loadMenu();
+  }, [loadMenu]);
 
-  /* ============================================================
-     2️⃣ SEARCH DEBOUNCE
-  ============================================================ */
-  useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(searchQuery), 300);
-    return () => clearTimeout(t);
-  }, [searchQuery]);
-
-  /* ============================================================
-     3️⃣ FILTER + SORT
-  ============================================================ */
+  // Filtered dishes
   const filteredDishes = useMemo(() => {
-    if (loading) return [];
+    let filtered = [...dishes];
 
-    let list = [...dishes];
-
-    if (debouncedSearch) {
-      const q = debouncedSearch.toLowerCase();
-      list = list.filter((d) => d.name.toLowerCase().includes(q));
-    }
-
-    if (selectedCategory !== "All Categories") {
-      list = list.filter((d) => d.category === selectedCategory);
-    }
-
-    if (selectedStatus !== "All Statuses") {
-      const shouldBe = selectedStatus === "Available";
-      list = list.filter((d) => d.available === shouldBe);
-    }
-
-    switch (sortBy) {
-      case "price-asc":
-        list.sort((a, b) => a.price - b.price);
-        break;
-      case "price-desc":
-        list.sort((a, b) => b.price - a.price);
-        break;
-      case "name-desc":
-        list.sort((a, b) => b.name.localeCompare(a.name));
-        break;
-      default:
-        list.sort((a, b) => a.name.localeCompare(b.name));
-    }
-
-    return list;
-  }, [
-    dishes,
-    debouncedSearch,
-    selectedCategory,
-    selectedStatus,
-    sortBy,
-    loading,
-  ]);
-
-  /* ============================================================
-     4️⃣ TOGGLE AVAILABILITY (FIXED + SAFE)
-  ============================================================ */
-  const toggleAvailability = async (dishId) => {
-    const previousDishes = dishes;
-
-    const dish = dishes.find((d) => d._id === dishId);
-    if (!dish) return;
-
-    const newAvailable = !dish.available;
-
-    // Optimistic UI
-    setDishes((prev) =>
-      prev.map((d) =>
-        d._id === dishId ? { ...d, available: newAvailable } : d
-      )
-    );
-
-    try {
-      const res = await menuApi.toggleAvailability(
-        RESTAURANT_ID,
-        dishId,
-        newAvailable
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (dish) =>
+          dish.name.toLowerCase().includes(query) ||
+          dish.description?.toLowerCase().includes(query)
       );
+    }
 
-      const updatedAvailable =
-        res.data?.data?.available ?? newAvailable;
-
-      setDishes((prev) =>
-        prev.map((d) =>
-          d._id === dishId ? { ...d, available: updatedAvailable } : d
-        )
+    // Category filter
+    if (selectedCategory !== "All") {
+      filtered = filtered.filter(
+        (dish) => dish.categoryId?.name === selectedCategory
       );
-
-      setStatistics((prev) => ({
-        ...prev,
-        available: updatedAvailable
-          ? prev.available + 1
-          : prev.available - 1,
-      }));
-    } catch (err) {
-      console.error("toggleAvailability error:", err);
-      setDishes(previousDishes); // rollback
-      throw err; // allow UI animation rollback
     }
-  };
 
-  /* ============================================================
-     5️⃣ DELETE DISH
-  ============================================================ */
-  const deleteDish = async (dishId) => {
-    const previous = dishes;
-
-    setDishes((prev) => prev.filter((d) => d._id !== dishId));
-
-    try {
-      await menuApi.deleteDish(RESTAURANT_ID, dishId);
-    } catch (err) {
-      console.error("Delete error:", err);
-      setDishes(previous);
+    // Status filter
+    if (selectedStatus === "Available") {
+      filtered = filtered.filter((dish) => dish.isAvailable);
+    } else if (selectedStatus === "Unavailable") {
+      filtered = filtered.filter((dish) => !dish.isAvailable);
     }
-  };
 
-  /* ============================================================
-     6️⃣ REFRESH ON TAB FOCUS
-  ============================================================ */
-  useEffect(() => {
-    const onFocus = () => fetchMenu();
-    window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
-  }, [RESTAURANT_ID]);
+    // Sort
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case "name-asc":
+          return a.name.localeCompare(b.name);
+        case "name-desc":
+          return b.name.localeCompare(a.name);
+        case "price-asc": {
+          const priceA = a.variants?.[0]?.price || 0;
+          const priceB = b.variants?.[0]?.price || 0;
+          return priceA - priceB;
+        }
+        case "price-desc": {
+          const priceA = a.variants?.[0]?.price || 0;
+          const priceB = b.variants?.[0]?.price || 0;
+          return priceB - priceA;
+        }
+        case "popularity":
+          return (b.popularityScore || 0) - (a.popularityScore || 0);
+        default:
+          return 0;
+      }
+    });
 
-  /* ============================================================
-     7️⃣ CLEAR FILTERS
-  ============================================================ */
-  const clearFilters = () => {
+    return filtered;
+  }, [dishes, searchQuery, selectedCategory, selectedStatus, sortBy]);
+
+  // Toggle availability
+  const toggleAvailability = useCallback(
+    async (dishId) => {
+      try {
+        const response = await menuApi.toggleAvailability(username, dishId);
+        const updatedDish = response.data.data;
+
+        setDishes((prev) =>
+          prev.map((dish) =>
+            dish._id === dishId
+              ? { ...dish, isAvailable: updatedDish.isAvailable }
+              : dish
+          )
+        );
+      } catch (err) {
+        console.error("Failed to toggle availability:", err);
+        alert(err.response?.data?.message || "Failed to toggle availability");
+      }
+    },
+    [username]
+  );
+
+  // Delete dish
+  const deleteDish = useCallback(
+    async (dishId) => {
+      if (!window.confirm("Are you sure you want to delete this dish?")) {
+        return;
+      }
+
+      try {
+        await menuApi.deleteDish(username, dishId);
+        setDishes((prev) => prev.filter((dish) => dish._id !== dishId));
+      } catch (err) {
+        console.error("Failed to delete dish:", err);
+        alert(err.response?.data?.message || "Failed to delete dish");
+      }
+    },
+    [username]
+  );
+
+  // Clear filters
+  const clearFilters = useCallback(() => {
     setSearchQuery("");
-    setSelectedCategory("All Categories");
-    setSelectedStatus("All Statuses");
+    setSelectedCategory("All");
+    setSelectedStatus("All");
     setSortBy("name-asc");
-  };
+  }, []);
 
-  /* ================= EXPORT ================= */
   return {
-    loading,
-    error,
     dishes,
     filteredDishes,
     categories,
-    statuses,
-    statistics,
+    loading,
+    error,
     searchQuery,
-    selectedCategory,
-    selectedStatus,
-    sortBy,
     setSearchQuery,
+    selectedCategory,
     setSelectedCategory,
+    selectedStatus,
     setSelectedStatus,
+    sortBy,
     setSortBy,
     toggleAvailability,
     deleteDish,
     clearFilters,
+    refreshMenu: loadMenu,
   };
 }
