@@ -1,14 +1,14 @@
 import React, { useState } from "react";
-import { Plus, Menu, Utensils, X, Sparkles, Search } from "lucide-react";
+import { Plus, Menu, Utensils, X, Search, Filter, FolderKanban } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 
-import DishCard from "../../components/menu/DishCard.jsx";
-import DishFilterBar from "../../components/menu/DishFilterBar.jsx";
-import useMenu from "../../hooks/useMenu.js";
-import Sidebar from "../../components/Sidebar.jsx";
+import DishCard from "../../components/menu/DishCard";
+import useMenu from "../../hooks/useMenu";
+import Sidebar from "../../components/Sidebar";
 
-const DishList = () => {
+export default function DishList() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
 
   const navigate = useNavigate();
   const { username } = useParams();
@@ -17,8 +17,7 @@ const DishList = () => {
     dishes,
     filteredDishes,
     categories,
-    statuses,
-    statistics,
+    loading,
     searchQuery,
     setSearchQuery,
     selectedCategory,
@@ -40,60 +39,60 @@ const DishList = () => {
     navigate(`/${username}/dish/${dish._id}/edit`);
   };
 
-  const handleRefresh = () => {
-    alert("Refresh feature coming soon");
+  const handleManageCategories = () => {
+    navigate(`/${username}/categories`);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#080B10] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500 mx-auto"></div>
+          <p className="text-white mt-4">Loading menu...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#080B10]">
       {/* HEADER */}
-      <header className="backdrop-blur-xl bg-[#0D1017]/80 border-b border-[#1F2532] sticky top-0 z-50 shadow-lg">
-        <div className="flex items-center justify-between gap-4 px-4 md:px-8 py-3">
-          {/* Left Section - Mobile Menu + Logo */}
-          <div className="flex items-center gap-3 flex-shrink-0">
-            {/* Mobile Menu Button */}
+      <header className="backdrop-blur-xl bg-[#0D1017]/80 border-b border-[#1F2532] sticky top-0 z-50">
+        <div className="flex items-center justify-between px-4 md:px-8 py-3">
+          {/* Left */}
+          <div className="flex items-center gap-3">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 rounded-xl text-gray-400 hover:text-blue-400 hover:bg-blue-500/10 transition-all duration-200 lg:hidden active:scale-95 border border-[#1F2532]"
-              aria-label="Toggle menu"
+              className="lg:hidden p-2 rounded-xl border border-[#1F2532] text-gray-400 hover:text-blue-400"
             >
               <Menu className="w-5 h-5" />
             </button>
 
-            {/* Logo */}
-            <div className="flex items-center gap-2.5 group cursor-pointer">
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl blur-md opacity-50 group-hover:opacity-75 transition-opacity duration-300" />
-                <div className="relative w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg transform group-hover:scale-105 transition-transform duration-300">
-                  <Utensils className="w-5 h-5 text-white" />
-                </div>
+            <div className="flex items-center gap-2">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+                <Utensils className="text-white w-5 h-5" />
               </div>
               <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
-                  Dishpop
-                </h1>
-                <p className="text-[10px] text-gray-500 font-medium leading-none">
-                  Menu Manager
-                </p>
+                <h1 className="text-xl font-bold text-white">Dishpop</h1>
+                <p className="text-xs text-gray-500">Menu Manager</p>
               </div>
             </div>
           </div>
 
-          {/* Center Section - Search Bar */}
-          <div className="flex-1 max-w-md hidden md:block">
+          {/* Search */}
+          <div className="hidden md:block flex-1 max-w-md mx-6">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
               <input
-                type="text"
-                placeholder="Search dishes..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-[#12151D] border border-[#232A37] rounded-xl text-gray-200 placeholder-gray-500 text-sm focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
+                placeholder="Search dishes..."
+                className="w-full pl-10 pr-4 py-2 bg-[#12151D] border border-[#232A37] rounded-xl text-gray-200 placeholder-gray-500 focus:border-indigo-600 focus:outline-none"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -101,17 +100,31 @@ const DishList = () => {
             </div>
           </div>
 
-          {/* Right Section - Dish Count + Add Button */}
-          <div className="flex items-center gap-3 flex-shrink-0">
-            <div className="hidden lg:flex items-center px-3 py-2 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 rounded-xl border border-blue-500/30">
-              <span className="text-sm font-semibold text-gray-300">
-                {filteredDishes.length} {filteredDishes.length === 1 ? 'Dish' : 'Dishes'}
-              </span>
-            </div>
+          {/* Right */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setFilterOpen(!filterOpen)}
+              className="md:hidden p-2 rounded-xl border border-[#232A37] text-gray-400 hover:text-blue-400"
+            >
+              <Filter className="w-5 h-5" />
+            </button>
+
+            <span className="hidden lg:block text-sm text-gray-300">
+              {filteredDishes.length} / {dishes.length} Dishes
+            </span>
+
+            {/* Categories Button */}
+            <button
+              onClick={handleManageCategories}
+              className="hidden sm:flex items-center gap-2 px-4 py-2 bg-[#12151D] border border-[#232A37] text-gray-300 rounded-xl hover:border-indigo-600 hover:text-indigo-400 transition-colors"
+            >
+              <FolderKanban className="w-4 h-4" />
+              <span>Categories</span>
+            </button>
 
             <button
               onClick={handleAddNewDish}
-              className="group relative px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl hover:shadow-blue-500/20 transition-all duration-300 transform hover:scale-105 active:scale-95 flex items-center gap-2"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl flex items-center gap-2 transition-colors"
             >
               <Plus className="w-4 h-4" />
               <span className="hidden sm:inline">Add Dish</span>
@@ -119,212 +132,150 @@ const DishList = () => {
           </div>
         </div>
 
-        {/* Mobile Search Bar */}
+        {/* Mobile Search */}
         <div className="md:hidden px-4 pb-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
             <input
-              type="text"
-              placeholder="Search dishes..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-[#12151D] border border-[#232A37] rounded-xl text-gray-200 placeholder-gray-500 text-sm focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
+              placeholder="Search dishes..."
+              className="w-full pl-10 pr-4 py-2 bg-[#12151D] border border-[#232A37] rounded-xl text-gray-200 placeholder-gray-500 focus:border-indigo-600 focus:outline-none"
             />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
           </div>
+
+          {/* Mobile Categories Button */}
+          <button
+            onClick={handleManageCategories}
+            className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-2 bg-[#12151D] border border-[#232A37] text-gray-300 rounded-xl hover:border-indigo-600 hover:text-indigo-400 transition-colors sm:hidden"
+          >
+            <FolderKanban className="w-4 h-4" />
+            <span>Manage Categories</span>
+          </button>
         </div>
       </header>
 
-      <div className="flex relative">
-        {/* Overlay for mobile sidebar */}
+      <div className="flex">
+        {/* SIDEBAR */}
         {sidebarOpen && (
           <div
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300"
+            className="fixed inset-0 bg-black/80 z-40 lg:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}
 
-        {/* SIDEBAR */}
         <div
-          className={`fixed lg:static inset-y-0 left-0 z-50 transform
-          transition-transform duration-300 ease-in-out
-          ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
+          className={`fixed lg:static inset-y-0 left-0 z-50 transition-transform ${
+            sidebarOpen
+              ? "translate-x-0"
+              : "-translate-x-full lg:translate-x-0"
+          }`}
         >
-          <div className="relative h-full">
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-200 hover:bg-[#12151D] rounded-lg transition-all duration-200 lg:hidden z-10 border border-[#1F2532]"
-              aria-label="Close sidebar"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            <Sidebar />
-          </div>
+          <Sidebar />
         </div>
 
-        {/* MAIN CONTENT */}
-        <main className="flex-1 relative">
-          {/* Statistics Bar + Filters */}
-          <div className="px-4 md:px-8 lg:px-10 pt-6">
-            {/* Statistics Bar */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <div className="bg-[#0D1017] border border-[#1F2532] rounded-xl p-4 shadow-lg hover:border-blue-500/30 transition-all duration-200">
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
-                  Total Dishes
-                </p>
-                <p className="text-2xl font-bold text-gray-200">
-                  {dishes.length}
-                </p>
-              </div>
-              
-              <div className="bg-[#0D1017] border border-[#1F2532] rounded-xl p-4 shadow-lg hover:border-green-500/30 transition-all duration-200">
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
-                  Available
-                </p>
-                <p className="text-2xl font-bold text-green-400">
-                  {dishes.filter(d => d.available).length}
-                </p>
-              </div>
-              
-              <div className="bg-[#0D1017] border border-[#1F2532] rounded-xl p-4 shadow-lg hover:border-blue-500/30 transition-all duration-200">
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
-                  Categories
-                </p>
-                <p className="text-2xl font-bold text-blue-400">
-                  {categories.length}
-                </p>
-              </div>
-              
-              <div className="bg-[#0D1017] border border-[#1F2532] rounded-xl p-4 shadow-lg hover:border-indigo-500/30 transition-all duration-200">
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
-                  Filtered
-                </p>
-                <p className="text-2xl font-bold text-indigo-400">
-                  {filteredDishes.length}
-                </p>
-              </div>
+        {/* MAIN */}
+        <main className="flex-1 px-4 md:px-8 py-6">
+          {/* FILTER BAR */}
+          <div
+            className={`mb-6 ${
+              filterOpen ? "block" : "hidden md:block"
+            } transition-all`}
+          >
+            <div className="flex flex-wrap gap-3">
+              {/* Category */}
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="bg-[#12151D] border border-[#232A37] rounded-xl px-4 py-2 text-gray-300 focus:border-indigo-600 focus:outline-none"
+              >
+                <option value="All">All Categories</option>
+                {categories.slice(1).map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+
+              {/* Status */}
+              <select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="bg-[#12151D] border border-[#232A37] rounded-xl px-4 py-2 text-gray-300 focus:border-indigo-600 focus:outline-none"
+              >
+                <option value="All">All Status</option>
+                <option value="Available">Available</option>
+                <option value="Unavailable">Unavailable</option>
+              </select>
+
+              {/* Sort */}
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="bg-[#12151D] border border-[#232A37] rounded-xl px-4 py-2 text-gray-300 focus:border-indigo-600 focus:outline-none"
+              >
+                <option value="name-asc">Sort: Name ↑</option>
+                <option value="name-desc">Sort: Name ↓</option>
+                <option value="price-asc">Sort: Price ↑</option>
+                <option value="price-desc">Sort: Price ↓</option>
+                <option value="popularity">Sort: Popularity</option>
+              </select>
+
+              {(searchQuery ||
+                selectedCategory !== "All" ||
+                selectedStatus !== "All" ||
+                sortBy !== "name-asc") && (
+                <button
+                  onClick={clearFilters}
+                  className="px-4 py-2 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl hover:bg-red-500/20 transition-colors"
+                >
+                  Clear Filters
+                </button>
+              )}
             </div>
+          </div>
 
-            {/* Compact Filter Bar (without search) */}
-            <div className="mb-6">
-              <div className="flex flex-wrap items-center gap-3">
-                {/* Category Filter */}
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="px-4 py-2.5 bg-[#12151D] border border-[#232A37] rounded-xl text-gray-300 text-sm focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
-                >
-                  <option value="">All Categories</option>
-                  {categories.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
-
-                {/* Status Filter */}
-                <select
-                  value={selectedStatus}
-                  onChange={(e) => setSelectedStatus(e.target.value)}
-                  className="px-4 py-2.5 bg-[#12151D] border border-[#232A37] rounded-xl text-gray-300 text-sm focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
-                >
-                  <option value="">All Status</option>
-                  {statuses.map((status) => (
-                    <option key={status} value={status}>
-                      {status}
-                    </option>
-                  ))}
-                </select>
-
-                {/* Sort By */}
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="px-4 py-2.5 bg-[#12151D] border border-[#232A37] rounded-xl text-gray-300 text-sm focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
-                >
-                  <option value="name">Sort: Name</option>
-                  <option value="price">Sort: Price</option>
-                  <option value="category">Sort: Category</option>
-                </select>
-
-                {/* Clear Filters Button */}
-                {(selectedCategory || selectedStatus || searchQuery) && (
+          {/* DISH LIST */}
+          <div className="space-y-4">
+            {filteredDishes.length === 0 ? (
+              <div className="text-center py-20 border border-dashed border-[#1F2532] rounded-xl">
+                <Utensils className="w-12 h-12 text-gray-500 mx-auto mb-4" />
+                <p className="text-gray-400 mb-2">No dishes found</p>
+                {dishes.length === 0 ? (
+                  <div className="space-y-3">
+                    <p className="text-sm text-gray-500">
+                      Start by creating categories first
+                    </p>
+                    <button
+                      onClick={handleManageCategories}
+                      className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                    >
+                      Create Categories
+                    </button>
+                  </div>
+                ) : (
                   <button
                     onClick={clearFilters}
-                    className="px-4 py-2.5 bg-[#12151D] hover:bg-red-500/10 border border-[#232A37] hover:border-red-500/50 rounded-xl text-gray-400 hover:text-red-400 text-sm font-medium transition-all duration-200"
+                    className="mt-4 px-6 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
                   >
                     Clear Filters
                   </button>
                 )}
               </div>
-            </div>
-          </div>
-
-          {/* Scrollable Dish List */}
-          <div className="px-4 md:px-8 lg:px-10 pb-10">
-            <div className="space-y-4">
-              {filteredDishes.length === 0 ? (
-                <div className="text-center py-20 bg-[#0D1017] border-2 border-dashed border-[#1F2532] rounded-2xl shadow-lg">
-                  <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-[#12151D] to-[#1A1F2B] rounded-full flex items-center justify-center">
-                    <Utensils className="w-10 h-10 text-gray-500" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-200 mb-2">
-                    No dishes found
-                  </h3>
-                  <p className="text-gray-400 mb-6">
-                    Try adjusting your filters or add a new dish to get started
-                  </p>
-                  <button
-                    onClick={clearFilters}
-                    className="px-6 py-3 bg-[#12151D] hover:bg-[#1A1F2B] text-gray-200 rounded-xl font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 border border-[#232A37]"
-                  >
-                    Clear All Filters
-                  </button>
-                </div>
-              ) : (
-                filteredDishes.map((dish, index) => (
-                  <div
-                    key={dish._id}
-                    className="animate-[fadeInUp_0.5s_ease-out_forwards]"
-                    style={{ animationDelay: `${index * 0.05}s`, opacity: 0 }}
-                  >
-                    <DishCard
-                      dish={dish}
-                      onToggleAvailability={toggleAvailability}
-                      onEdit={() => handleEdit(dish)}
-                      onDelete={deleteDish}
-                      onRefresh={() => handleRefresh(dish._id)}
-                    />
-                  </div>
-                ))
-              )}
-            </div>
+            ) : (
+              filteredDishes.map((dish) => (
+                <DishCard
+                  key={dish._id}
+                  dish={dish}
+                  onToggleAvailability={toggleAvailability}
+                  onEdit={() => handleEdit(dish)}
+                  onDelete={deleteDish}
+                />
+              ))
+            )}
           </div>
         </main>
       </div>
-
-      {/* Animations */}
-      <style>{`
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
     </div>
   );
-};
-
-export default DishList;
+}
