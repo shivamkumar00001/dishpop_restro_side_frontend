@@ -194,13 +194,13 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-12 items-center">
           <div className="space-y-6">
             <h2 className="text-4xl md:text-5xl font-bold">
-              About AR Restro:<br />
+              About Dishpop:<br />
               <TypewriterText text="The future of Dining" 
               className="text-cyan-400"  
               speed={90}/>
             </h2>
             <p>
-              <TypewriterText text="AR Restro is an innovative platform that combines augmented reality 
+              <TypewriterText text="Dishpop is an innovative platform that combines augmented reality 
               technology with artificial intelligence to transform the restaurant industry. 
               Our solution enables customers to visualize menu items in stunning 3D, 
               provides real-time analytics for restaurant owners, and creates an 
@@ -211,7 +211,7 @@ const LandingPage = () => {
             </p>
             <p className="text-gray-100 text-lg leading-relaxed">
               Join thousands of restaurants worldwide who have already elevated their 
-              dining experience with AR Restro technology.
+              dining experience with dishpop technology.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-4">

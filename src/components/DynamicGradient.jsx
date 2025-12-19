@@ -20,7 +20,7 @@ const DynamicGradientText = () => {
         setIndex((prev) => (prev + 1) % words.length);
         setFade(true);
       }, 400);
-    }, 740);
+    }, 1200);
 
     return () => clearInterval(interval);
   }, []);
