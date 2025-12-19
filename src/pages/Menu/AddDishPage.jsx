@@ -7,7 +7,7 @@ export default function AddDishPage() {
 
   const handleSuccess = () => {
     // Redirect to dish list after successful creation
-    navigate(`/${username}/menu`);
+    navigate(`/${username}/dishes`);
   };
 
   return (

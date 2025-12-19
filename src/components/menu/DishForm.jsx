@@ -27,46 +27,76 @@ export default function DishForm({
   onSuccess,
 }) {
   // Basic info
-  const [name, setName] = useState(initial.name || "");
-  const [description, setDescription] = useState(initial.description || "");
-  const [foodType, setFoodType] = useState(initial.foodType || "veg");
-  const [categoryId, setCategoryId] = useState(
-    initial.categoryId?._id || initial.categoryId || ""
-  );
-  const [preparationTime, setPreparationTime] = useState(
-    initial.preparationTime || 15
-  );
-  const [spiceLevel, setSpiceLevel] = useState(initial.spiceLevel || "none");
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [foodType, setFoodType] = useState("veg");
+  const [categoryId, setCategoryId] = useState("");
+  const [preparationTime, setPreparationTime] = useState(15);
+  const [spiceLevel, setSpiceLevel] = useState("none");
 
-  // Variants
-  const [variants, setVariants] = useState(
-    initial.variants || [
-      {
-        label: "Regular",
-        unit: "plate",
-        quantity: 1,
-        price: "",
-        isDefault: true,
-        isAvailable: true,
-      },
-    ]
-  );
+  // Variants - ✅ Using "name" field
+  const [variants, setVariants] = useState([
+    {
+      name: "Regular",  // ✅ Changed from "label" to "name"
+      unit: "plate",
+      quantity: 1,
+      price: "",
+      isDefault: true,
+      isAvailable: true,
+    },
+  ]);
 
   // Categories and add-ons
   const [categories, setCategories] = useState([]);
   const [addOnGroups, setAddOnGroups] = useState([]);
-  const [selectedAddOns, setSelectedAddOns] = useState(
-    initial.addOnGroups?.map((g) => g._id || g) || []
-  );
+  const [selectedAddOns, setSelectedAddOns] = useState([]);
 
   // Image
   const [image, setImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState(
-    initial.imageUrl || initial.thumbnailUrl || null
-  );
+  const [imagePreview, setImagePreview] = useState(null);
 
   // UI state
   const [loading, setLoading] = useState(false);
+
+  // Initialize form data when in edit mode
+  useEffect(() => {
+    if (mode === "edit" && initial && Object.keys(initial).length > 0) {
+      console.log("Initializing edit form with data:", initial);
+
+      // Set basic fields
+      setName(initial.name || "");
+      setDescription(initial.description || "");
+      setFoodType(initial.foodType || "veg");
+      setCategoryId(initial.categoryId?._id || initial.categoryId || "");
+      setPreparationTime(initial.preparationTime || 15);
+      setSpiceLevel(initial.spiceLevel || "none");
+
+      // ✅ Set variants - using "name" field
+      if (initial.variants && Array.isArray(initial.variants) && initial.variants.length > 0) {
+        const loadedVariants = initial.variants.map((v) => ({
+          name: v.name || "",  // ✅ Using "name"
+          unit: v.unit || "plate",
+          quantity: v.quantity || 1,
+          price: v.price || "",
+          isDefault: v.isDefault || false,
+          isAvailable: v.isAvailable !== undefined ? v.isAvailable : true,
+        }));
+        console.log("Loading variants:", loadedVariants);
+        setVariants(loadedVariants);
+      }
+
+      // Set add-on groups
+      if (initial.addOnGroups) {
+        const addonIds = initial.addOnGroups.map((g) => g._id || g);
+        setSelectedAddOns(addonIds);
+      }
+
+      // Set image preview
+      if (initial.imageUrl || initial.thumbnailUrl) {
+        setImagePreview(initial.imageUrl || initial.thumbnailUrl);
+      }
+    }
+  }, [mode, initial]);
 
   // Load meta data
   useEffect(() => {
@@ -77,8 +107,25 @@ export default function DishForm({
           menuApi.getAddOnGroups(username),
         ]);
 
-        setCategories(categoriesRes.data.data || []);
-        setAddOnGroups(addOnsRes.data.data || []);
+        // Handle different response structures
+        let categoryList = [];
+        if (categoriesRes.data?.data) {
+          categoryList = categoriesRes.data.data;
+        } else if (categoriesRes.data?.categories) {
+          categoryList = categoriesRes.data.categories;
+        } else if (Array.isArray(categoriesRes.data)) {
+          categoryList = categoriesRes.data;
+        }
+
+        let addonList = [];
+        if (addOnsRes.data?.data) {
+          addonList = addOnsRes.data.data;
+        } else if (Array.isArray(addOnsRes.data)) {
+          addonList = addOnsRes.data;
+        }
+
+        setCategories(categoryList || []);
+        setAddOnGroups(addonList || []);
       } catch (err) {
         console.error("Failed to load metadata:", err);
       }
@@ -91,13 +138,11 @@ export default function DishForm({
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Validate file size (5MB)
       if (file.size > 5 * 1024 * 1024) {
         alert("File size must be less than 5MB");
         return;
       }
 
-      // Validate file type
       const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
       if (!validTypes.includes(file.type)) {
         alert("Only JPEG, PNG, and WebP images are allowed");
@@ -114,7 +159,7 @@ export default function DishForm({
     setVariants([
       ...variants,
       {
-        label: "",
+        name: "",  // ✅ Using "name"
         unit: "plate",
         quantity: 1,
         price: "",
@@ -138,7 +183,6 @@ export default function DishForm({
 
     const updated = variants.filter((_, i) => i !== index);
 
-    // If removed variant was default, set first as default
     if (variants[index].isDefault && updated.length > 0) {
       updated[0].isDefault = true;
     }
@@ -168,7 +212,6 @@ export default function DishForm({
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validation
     if (!name.trim()) {
       alert("Dish name is required");
       return;
@@ -179,10 +222,10 @@ export default function DishForm({
       return;
     }
 
-    // Validate variants
+    // ✅ Validate variants - using "name" field
     for (const variant of variants) {
-      if (!variant.label || !variant.price) {
-        alert("All variants must have a label and price");
+      if (!variant.name || !variant.price) {
+        alert("All variants must have a name and price");
         return;
       }
     }
@@ -197,26 +240,7 @@ export default function DishForm({
       formData.append("foodType", foodType);
       formData.append("preparationTime", preparationTime);
       formData.append("spiceLevel", spiceLevel);
-
-
-
-     // ================================
-// MAP label -> name FOR BACKEND
-// ================================
-const variantsForApi = variants.map((v) => ({
-  name: v.label,          // 👈 THIS IS THE KEY FIX
-  unit: v.unit,
-  quantity: v.quantity,
-  price: v.price,
-  isDefault: v.isDefault,
-  isAvailable: v.isAvailable,
-}));
-
-    formData.append("variants", JSON.stringify(variantsForApi));
-
-
-    
-
+      formData.append("variants", JSON.stringify(variants));
       formData.append("addOnGroups", JSON.stringify(selectedAddOns));
 
       if (image) {
@@ -409,11 +433,12 @@ const variantsForApi = variants.map((v) => ({
               key={index}
               className="flex items-center gap-3 p-4 bg-[#12151D] border border-[#232A37] rounded-lg"
             >
+              {/* ✅ Using variant.name */}
               <input
                 type="text"
-                value={variant.label}
-                onChange={(e) => updateVariant(index, "label", e.target.value)}
-                placeholder="Label (e.g., Regular)"
+                value={variant.name}
+                onChange={(e) => updateVariant(index, "name", e.target.value)}
+                placeholder="Name (e.g., Regular, Half, Full)"
                 className="flex-1 px-3 py-2 bg-[#0D1017] border border-[#232A37] rounded text-white placeholder-gray-500 focus:border-indigo-600 focus:outline-none"
               />
 
