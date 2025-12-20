@@ -5,12 +5,8 @@ import ProtectedRoute from "../components/ProtectedRoute";
 import LandingPage from "../pages/Home/LandingPage";
 import About from "../pages/Home/About";
 import Contact from "../pages/Home/Contact";
-<<<<<<< Updated upstream
 import PrivacyPolicy from "../pages/Home/PrivacyPolicy";
 import TermsOfService from "../pages/Home/Terms";
-=======
-// import PrivacyPolicy from "../pages/Home/PrivacyPolicy";
->>>>>>> Stashed changes
 
 /* ---------- AUTH ---------- */
 import Register from "../pages/auth/Register";
@@ -46,12 +42,8 @@ export default function AppRoutes() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/about" element={<About />} />
       <Route path="/contact" element={<Contact />} />
-<<<<<<< Updated upstream
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/terms-of-service" element={<TermsOfService />} />
-=======
-{/* <Route path="/privacy-policy" element={<PrivacyPolicy />} />*/}
->>>>>>> Stashed changes
 
       {/* ================= AUTH ================= */}
       <Route path="/register" element={<Register />} />
