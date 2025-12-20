@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Plus, Trash2, Loader2, FolderPlus, X } from "lucide-react";
-import addonApi from "../../api/addonApi";
+import addonApi from "../../api/addOnApi";
 
 export default function AddonsPage() {
   const { username } = useParams();
