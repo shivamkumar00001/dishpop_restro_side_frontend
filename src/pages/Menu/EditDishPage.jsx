@@ -27,7 +27,7 @@ export default function EditDishPage() {
   }, [username, id, navigate]);
 
   const handleSuccess = () => {
-    navigate(`/${username}/menu`);
+    navigate(`/${username}/dishes`);
   };
 
   if (loading) {

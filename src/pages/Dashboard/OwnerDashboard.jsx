@@ -8,7 +8,7 @@ import FeedbackSummary from "./FeedbackSummary";
 import ModelInsights from "./ModelsInsights";
 import LiveOrdersPanel from "./LiveOrderPanel";
 
-import  api  from "../../services/api";
+import api from "../../services/api";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -48,7 +48,8 @@ export default function Dashboard() {
 
     loadData();
   }, [username, navigate]);
- console.log("Dashboard room:", username);
+
+  console.log("Dashboard room:", username);
 
   /* ===============================
      LOGOUT
@@ -70,7 +71,10 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0c0f14] text-white">
-        Loading...
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-400">Loading dashboard...</p>
+        </div>
       </div>
     );
   }
@@ -78,7 +82,15 @@ export default function Dashboard() {
   if (!user || !restaurant) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0c0f14] text-white">
-        <p>Error loading dashboard</p>
+        <div className="text-center">
+          <p className="text-red-400 mb-4">Error loading dashboard</p>
+          <button
+            onClick={() => navigate("/login")}
+            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg transition"
+          >
+            Go to Login
+          </button>
+        </div>
       </div>
     );
   }
@@ -93,9 +105,25 @@ export default function Dashboard() {
       <div className="flex-1 p-4 lg:p-6 overflow-y-auto">
         {/* HEADER */}
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-lg lg:text-2xl font-bold">
-            Dashboard – {user.restaurantName}
-          </h1>
+          <div>
+            <h1 className="text-lg lg:text-2xl font-bold">
+              Dashboard – {user.restaurantName}
+            </h1>
+            <p className="text-sm text-gray-400 mt-1">
+              Welcome back, {user.name || user.username}
+            </p>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="hidden lg:flex items-center gap-3">
+            <button
+              onClick={() => navigate(`/${username}/orders`)}
+              className="px-4 py-2 bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-500/20 rounded-lg transition text-sm"
+            >
+              All Orders
+            </button>
+          
+          </div>
         </div>
 
         {/* TOP STATS */}
@@ -104,18 +132,18 @@ export default function Dashboard() {
             <ARViewStatistics restaurantId={username} />
           </div>
 
-            <div className="lg:col-span-1">
+          <div className="lg:col-span-1">
             <ModelInsights restaurantId={username} />
           </div>
         </div>
 
         {/* LIVE ORDERS + FEEDBACK */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
-         { (
-  <LiveOrdersPanel username={username} />
-)}
+          {/* 🆕 LIVE ORDERS PANEL - Real-time order notifications */}
+          <LiveOrdersPanel username={username} />
 
-<FeedbackSummary username={user.username} />
+          {/* FEEDBACK SUMMARY */}
+          <FeedbackSummary username={user.username} />
         </div>
       </div>
     </div>

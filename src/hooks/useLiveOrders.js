@@ -1,52 +1,129 @@
-import { useEffect, useRef } from "react";
-import { socket } from "../utils/socket";
+import { useEffect, useRef, useCallback } from "react";
+import { io } from "socket.io-client";
 
-export default function useLiveOrders(username, callback) {
-  const callbackRef = useRef(callback);
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL;
 
-  // keep latest callback without retriggering socket effect
-  useEffect(() => {
-    callbackRef.current = callback;
-  }, [callback]);
+const useLiveOrders = (username, onOrderEvent) => {
+  const socketRef = useRef(null);
+  const reconnectTimeoutRef = useRef(null);
 
-  useEffect(() => {
-    console.log("🟡 useLiveOrders effect triggered");
-    console.log("➡️ username received:", username);
+  const initializeSocket = useCallback(() => {
+    if (!username) return;
 
-    if (!username) {
-      console.log("⛔ No username, skipping socket join");
-      return;
+    if (socketRef.current) {
+      socketRef.current.disconnect();
     }
 
-    console.log("🔗 Emitting join-restaurant:", username);
-    socket.emit("join-restaurant", username);
+    const token = localStorage.getItem("token");
 
-    const onCreated = (order) => {
-      console.log("📥 SOCKET EVENT: created", order);
-      callbackRef.current?.("created", order);
-    };
+    socketRef.current = io(SOCKET_URL, {
+      transports: ["websocket", "polling"],
+      auth: { token },
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: Infinity,
+    });
 
-    const onUpdated = (order) => {
-      console.log("📥 SOCKET EVENT: updated", order);
-      callbackRef.current?.("updated", order);
-    };
+    const socket = socketRef.current;
 
-    console.log("🧲 Attaching socket listeners");
+    socket.on("connect", () => {
+      console.log("✅ Socket connected:", socket.id);
+      socket.emit("join:restaurant", username);
+    });
 
-    socket.on("order:created", onCreated);
-    socket.on("order-created", onCreated);
+    socket.on("joined", (data) => {
+      console.log("✅ Joined room:", data);
+    });
 
-    socket.on("order:updated", onUpdated);
-    socket.on("order-updated", onUpdated);
+    socket.on("disconnect", (reason) => {
+      console.log("🔌 Socket disconnected:", reason);
+
+      if (reason === "io server disconnect") {
+        reconnectTimeoutRef.current = setTimeout(() => {
+          socket.connect();
+        }, 1000);
+      }
+    });
+
+    socket.on("connect_error", (error) => {
+      console.error("❌ Socket connection error:", error);
+    });
+
+    socket.on("order:created", (data) => {
+      console.log("📦 New order received:", data);
+      if (onOrderEvent) {
+        onOrderEvent("created", data.order);
+      }
+    });
+
+    socket.on("order:updated", (data) => {
+      console.log("🔄 Order updated:", data);
+      if (onOrderEvent) {
+        onOrderEvent("updated", data.order);
+      }
+    });
+
+    socket.on("order:deleted", (data) => {
+      console.log("🗑️ Order deleted:", data);
+      if (onOrderEvent) {
+        onOrderEvent("deleted", data.orderId);
+      }
+    });
+
+    socket.on("error", (error) => {
+      console.error("❌ Socket error:", error);
+    });
+
+    const pingInterval = setInterval(() => {
+      if (socket.connected) {
+        socket.emit("ping");
+      }
+    }, 30000);
+
+    socket.on("pong", (data) => {
+      console.log("🏓 Pong received:", data.timestamp);
+    });
+
+    socket.pingInterval = pingInterval;
+  }, [username, onOrderEvent]);
+
+  useEffect(() => {
+    initializeSocket();
 
     return () => {
-      console.log("🧹 Cleaning up socket listeners for:", username);
+      if (socketRef.current) {
+        if (socketRef.current.pingInterval) {
+          clearInterval(socketRef.current.pingInterval);
+        }
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
 
-      socket.off("order:created", onCreated);
-      socket.off("order-created", onCreated);
-
-      socket.off("order:updated", onUpdated);
-      socket.off("order-updated", onUpdated);
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
     };
-  }, [username]);
-}
+  }, [initializeSocket]);
+
+  const reconnect = useCallback(() => {
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+      socketRef.current.connect();
+    } else {
+      initializeSocket();
+    }
+  }, [initializeSocket]);
+
+  const isConnected = useCallback(() => {
+    return socketRef.current?.connected || false;
+  }, []);
+
+  return {
+    socket: socketRef.current,
+    reconnect,
+    isConnected,
+  };
+};
+
+export default useLiveOrders;

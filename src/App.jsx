@@ -38,7 +38,7 @@
 import React, { useEffect } from "react";
 import AppRoutes from "./routes/AppRoutes";
 import { AuthProvider } from "./context/AuthContext";
-import { autoUnlockSound } from "./utils/playSound";
+import { autoUnlockSound } from "./utils/soundManager";
 import { Toaster } from "react-hot-toast";
 
 function App() {
