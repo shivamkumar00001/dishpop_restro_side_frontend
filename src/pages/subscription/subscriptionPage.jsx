@@ -117,7 +117,8 @@
 
 
 import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../../lib/api"; // adjust path if needed
+
 
 export default function SubscriptionPage() {
   const [loading, setLoading] = useState(false);
@@ -137,8 +138,8 @@ export default function SubscriptionPage() {
   // 🔄 Always fetch status from backend
   const fetchSubscription = async () => {
     try {
-      const { data } = await axios.get(
-        "http://localhost:5001/api/subscription/status",
+      const { data } = await api.get(
+        "/api/subscription/status",
         { withCredentials: true }
       );
 
@@ -161,8 +162,8 @@ export default function SubscriptionPage() {
     setLoading(true);
 
     try {
-      const { data } = await axios.post(
-        "http://localhost:5001/api/subscription/create",
+      const { data } = await api.post(
+        "/api/subscription/create",
         { plan },
         { withCredentials: true }
       );
