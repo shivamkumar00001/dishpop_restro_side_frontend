@@ -117,7 +117,7 @@
 
 
 import { useState, useEffect } from "react";
-import api from "../../lib/api"; // adjust path if needed
+import api from "../../services/api"; // adjust path if needed
 
 
 export default function SubscriptionPage() {
