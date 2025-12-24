@@ -139,7 +139,7 @@ export default function SubscriptionPage() {
   const fetchSubscription = async () => {
     try {
       const { data } = await api.get(
-        "/api/subscription/status",
+        "/subscription/status",
         { withCredentials: true }
       );
 
@@ -163,7 +163,7 @@ export default function SubscriptionPage() {
 
     try {
       const { data } = await api.post(
-        "/api/subscription/create",
+        "/subscription/create",
         { plan },
         { withCredentials: true }
       );
