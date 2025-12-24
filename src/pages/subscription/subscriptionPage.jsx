@@ -1,70 +1,259 @@
-import React from "react";
+// import { useState, useEffect } from "react";
+// import axios from "axios";
+
+// export default function SubscriptionPage() {
+//   const [loading, setLoading] = useState(false);
+//   const [subscriptionStatus, setSubscriptionStatus] = useState(null);
+//   const [currentPlan, setCurrentPlan] = useState(null);
+//   const [trialEnd, setTrialEnd] = useState(null);
+
+//   const loadRazorpayScript = () =>
+//     new Promise((resolve) => {
+//       const script = document.createElement("script");
+//       script.src = "https://checkout.razorpay.com/v1/checkout.js";
+//       script.onload = () => resolve(true);
+//       script.onerror = () => resolve(false);
+//       document.body.appendChild(script);
+//     });
+
+//   useEffect(() => {
+//     const fetchSubscription = async () => {
+//       try {
+//         const { data } = await axios.get(
+//           "http://localhost:5001/api/subscription/status",
+//           { withCredentials: true }
+//         );
+
+//         if (data.subscription) {
+//           setSubscriptionStatus(data.subscription.status);
+//           setCurrentPlan(data.subscription.plan);
+//           setTrialEnd(data.subscription.trialEnd);
+//         }
+//       } catch (err) {
+//         console.error("Failed to fetch subscription info:", err);
+//       }
+//     };
+
+//     fetchSubscription();
+//   }, []);
+
+//   const handleSubscribe = async (plan) => {
+//     if (loading) return; // 🔒 prevent double click
+//     setLoading(true);
+
+//     try {
+//       const { data } = await axios.post(
+//         "http://localhost:5001/api/subscription/create",
+//         { plan },
+//         { withCredentials: true }
+//       );
+
+//       const { subscriptionId, razorpayKey, trialEnd } = data;
+
+//       setTrialEnd(trialEnd);
+//       setCurrentPlan(plan);
+//       setSubscriptionStatus("TRIALING");
+
+//       const loaded = await loadRazorpayScript();
+//       if (!loaded) {
+//         alert("Razorpay SDK failed to load");
+//         return;
+//       }
+
+//       const options = {
+//         key: razorpayKey,
+//         subscription_id: subscriptionId,
+//         name: "DishPop Restaurant",
+//         description: `${plan} Plan Subscription`,
+//         handler: function (response) {
+//           console.log("Razorpay Response:", response);
+//           alert("Subscription initiated successfully!");
+//           window.location.reload();
+//         },
+//         theme: { color: "#3399cc" },
+//       };
+
+//       const rzp = new window.Razorpay(options);
+//       rzp.open();
+//     } catch (error) {
+//       console.error("Subscription error:", error);
+
+//       const msg =
+//         error.response?.data?.message ||
+//         error.response?.data?.razorpay?.description ||
+//         "Failed to initiate subscription";
+
+//       alert(msg);
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   return (
+//     <div style={{ padding: "2rem" }}>
+//       <h2>Choose a Subscription Plan</h2>
+
+//       {["MONTHLY", "QUARTERLY", "YEARLY"].map((plan) => (
+//         <div key={plan} style={{ margin: "1rem 0" }}>
+//           <button
+//             onClick={() => handleSubscribe(plan)}
+//             disabled={loading || ["TRIALING", "ACTIVE"].includes(subscriptionStatus)}
+//           >
+//             {loading ? "Processing..." : `Subscribe ${plan}`}
+//           </button>
+//         </div>
+//       ))}
+
+//       {subscriptionStatus && trialEnd && (
+//         <div style={{ marginTop: "2rem", color: "green" }}>
+//           <p>Status: <strong>{subscriptionStatus}</strong></p>
+//           <p>Current Plan: <strong>{currentPlan}</strong></p>
+//           <p>Trial ends on: <strong>{new Date(trialEnd).toLocaleDateString()}</strong></p>
+//         </div>
+//       )}
+//     </div>
+//   );
+// }
+
+
+import { useState, useEffect } from "react";
+import axios from "axios";
 
 export default function SubscriptionPage() {
-  const plans = [
-    {
-      name: "Basic",
-      price: "$0",
-      models: "2 AR models / month",
-      bgColor: "from-gray-800 to-gray-900",
-      buttonColor: "bg-gray-600 hover:bg-gray-500",
-    },
-    {
-      name: "Pro",
-      price: "$6.5",
-      models: "150 AR models / month",
-      bgColor: "from-blue-700 to-blue-900",
-      buttonColor: "bg-blue-600 hover:bg-blue-500",
-      popular: true,
-    },
-    {
-      name: "Premium",
-      price: "$9.9",
-      models: "500 AR models / month",
-      bgColor: "from-purple-700 to-purple-900",
-      buttonColor: "bg-purple-600 hover:bg-purple-500",
-    },
-  ];
+  const [loading, setLoading] = useState(false);
+  const [subscriptionStatus, setSubscriptionStatus] = useState(null);
+  const [currentPlan, setCurrentPlan] = useState(null);
+  const [trialEnd, setTrialEnd] = useState(null);
+
+  const loadRazorpayScript = () =>
+    new Promise((resolve) => {
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+
+  // 🔄 Always fetch status from backend
+  const fetchSubscription = async () => {
+    try {
+      const { data } = await axios.get(
+        "http://localhost:5001/api/subscription/status",
+        { withCredentials: true }
+      );
+
+      if (data.subscription) {
+        setSubscriptionStatus(data.subscription.status);
+        setCurrentPlan(data.subscription.plan || null);
+        setTrialEnd(data.subscription.trialEnd || null);
+      }
+    } catch (err) {
+      console.error("Failed to fetch subscription info:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchSubscription();
+  }, []);
+
+  const handleSubscribe = async (plan) => {
+    if (loading) return;
+    setLoading(true);
+
+    try {
+      const { data } = await axios.post(
+        "http://localhost:5001/api/subscription/create",
+        { plan },
+        { withCredentials: true }
+      );
+
+      const { subscriptionId, razorpayKey } = data;
+
+      const loaded = await loadRazorpayScript();
+      if (!loaded) {
+        alert("Razorpay SDK failed to load");
+        return;
+      }
+
+      const options = {
+        key: razorpayKey,
+        subscription_id: subscriptionId,
+        name: "DishPop Restaurant",
+        description: `${plan} Plan Subscription`,
+        handler: function () {
+          alert("Autopay setup completed. Status will update shortly.");
+          setTimeout(fetchSubscription, 2000);
+        },
+        modal: {
+          ondismiss: function () {
+            // 🔥 User closed popup → no status change
+            setTimeout(fetchSubscription, 1000);
+          }
+        },
+        theme: { color: "#3399cc" }
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+
+    } catch (error) {
+      const msg =
+        error.response?.data?.message ||
+        error.response?.data?.razorpay?.description ||
+        "Failed to initiate subscription";
+
+      alert(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-[#0b0e14] text-white flex flex-col items-center py-12 px-4 sm:py-16 sm:px-6 md:px-8 font-sans">
-      <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold mb-12 sm:mb-16 text-center tracking-tight">
-        Choose Your Subscription Plan
-      </h1>
+    <div style={{ padding: "2rem" }}>
+      <h2>Choose a Subscription Plan</h2>
 
-      <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-3 gap-8 sm:gap-10 md:gap-12 w-full max-w-7xl">
-        {plans.map((plan) => (
-          <div
-            key={plan.name}
-            className={`relative bg-gradient-to-br ${plan.bgColor} p-6 sm:p-8 md:p-10 lg:p-12 rounded-3xl shadow-2xl flex flex-col justify-between min-h-[400px] sm:min-h-[450px] md:min-h-[500px] transform transition-transform duration-300 hover:scale-105`}
-            style={{ backdropFilter: "blur(15px)" }}
+      {["MONTHLY", "QUARTERLY", "YEARLY"].map((plan) => (
+        <div key={plan} style={{ margin: "1rem 0" }}>
+          <button
+            onClick={() => handleSubscribe(plan)}
+            disabled={
+              loading ||
+              ["TRIALING", "ACTIVE"].includes(subscriptionStatus)
+            }
           >
-            {plan.popular && (
-              <span className="absolute top-4 right-4 sm:top-5 sm:right-5 bg-yellow-400 text-black font-bold px-4 py-1 sm:px-5 sm:py-1 rounded-full text-sm tracking-wide">
-                Most Popular
-              </span>
-            )}
+            {loading ? "Processing..." : `Subscribe ${plan}`}
+          </button>
+        </div>
+      ))}
 
-            <div className="flex flex-col items-center">
-              <h2 className="text-2xl sm:text-2xl md:text-3xl lg:text-3xl font-bold mb-4 sm:mb-6 tracking-wide">
-                {plan.name}
-              </h2>
-              <p className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl font-extrabold mb-2 sm:mb-4 md:mb-4">
-                {plan.price}
-              </p>
-              <p className="text-base sm:text-lg md:text-xl lg:text-xl text-gray-300 mb-6 sm:mb-8 md:mb-10 text-center tracking-wide">
-                {plan.models}
-              </p>
-            </div>
+      {/* 🔔 Status messages */}
+     {subscriptionStatus === "PENDING_AUTH" && (
+  <p style={{ color: "orange" }}>
+    Autopay setup incomplete. Please retry payment to activate your subscription.
+  </p>
+)}
 
-            <button
-              className={`${plan.buttonColor} text-white font-semibold px-6 sm:px-8 md:px-10 py-2 sm:py-3 md:py-4 rounded-full text-base sm:text-lg md:text-lg lg:text-lg tracking-wide transition duration-300`}
-            >
-              Subscribe
-            </button>
-          </div>
-        ))}
-      </div>
+
+      {subscriptionStatus === "TRIALING" && (
+        <p style={{ color: "green" }}>
+          Free trial active
+          {trialEnd && (
+            <> · Ends on {new Date(trialEnd).toLocaleDateString()}</>
+          )}
+        </p>
+      )}
+
+      {subscriptionStatus === "ACTIVE" && (
+        <p style={{ color: "green" }}>
+          Subscription active ({currentPlan})
+        </p>
+      )}
+
+      {subscriptionStatus === "EXPIRED" && (
+        <p style={{ color: "red" }}>
+          Subscription expired due to payment failure.
+        </p>
+      )}
     </div>
   );
 }

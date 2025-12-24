@@ -33,7 +33,6 @@ import NotFound from "../pages/NotFound/NotFound";
 import CategoriesPage from "../pages/Menu/CategoriesPage";
 import AddonManager from "../pages/Addons/AddonManager";
 
-
 export default function AppRoutes() {
   return (
     <Routes>
@@ -61,7 +60,13 @@ export default function AppRoutes() {
 
         {/* OWNER DASHBOARD */}
         <Route path="/:username/dashboard" element={<Dashboard />} />
-        <Route path="/:username/subscribe" element={<SubscriptionPage />} />
+
+        {/* 🔹 Enhanced Subscription Page */}
+        <Route
+          path="/:username/subscribe"
+          element={<SubscriptionPage />}
+        />
+
         <Route path="/:username/dishes" element={<DishList />} />
         <Route path="/:username/menu/add" element={<AddDishPage />} />
         <Route path="/:username/dish/:id/edit" element={<EditDishPage />} />
@@ -79,13 +84,7 @@ export default function AppRoutes() {
 
       <Route path="/:username/addons" element={<AddonManager/>} />
 
-
-      <Route
-  path="/:username/menu/categories"
-  element={<CategoriesPage/>}
-/>
-
-
+      <Route path="/:username/menu/categories" element={<CategoriesPage/>} />
 
     </Routes>
   );
