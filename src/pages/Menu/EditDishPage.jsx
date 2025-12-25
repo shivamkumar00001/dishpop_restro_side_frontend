@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import menuApi from "../../api/menuApi";
 import DishForm from "../../components/menu/DishForm";
 
@@ -32,9 +33,9 @@ export default function EditDishPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#080B10] flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500 mx-auto"></div>
+          <Loader2 className="animate-spin rounded-full h-12 w-12 text-cyan-500 mx-auto" />
           <p className="text-white mt-4">Loading dish...</p>
         </div>
       </div>
@@ -43,7 +44,7 @@ export default function EditDishPage() {
 
   if (!dish) {
     return (
-      <div className="min-h-screen bg-[#080B10] flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
           <p className="text-white">Dish not found</p>
         </div>
@@ -52,17 +53,16 @@ export default function EditDishPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#080B10] py-8 px-4">
+    <div className="min-h-screen bg-black text-white py-8 px-4">
       <div className="max-w-5xl mx-auto">
-        {/* Back Button */}
         <button
           onClick={() => navigate(-1)}
-          className="mb-6 px-4 py-2 text-gray-400 hover:text-white transition-colors flex items-center gap-2"
+          className="mb-6 px-4 py-2 text-gray-400 hover:text-cyan-400 flex items-center gap-2"
         >
-          ← Back to Menu
+          <ArrowLeft className="w-4 h-4" />
+          Back to Menu
         </button>
 
-        {/* Form */}
         <DishForm
           mode="edit"
           initial={dish}
