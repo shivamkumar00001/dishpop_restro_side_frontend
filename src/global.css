@@ -1,40 +1,91 @@
 @import "tailwindcss";
-/* ========================================
-   PROFESSIONAL ORDER MANAGEMENT CSS
-   ======================================== */
-
-@import "tailwindcss";
 
 /* ========================================
-   PROFESSIONAL DARK THEME CSS
-   Fixed for Gray-800/900/950 Palette
+   PROFESSIONAL MINIMAL DARK UI
+   Calm · Subtle · Enterprise-grade
    ======================================== */
 
-/* Custom Scrollbar Styling - Dark Theme */
-.bg-scrollbar::-webkit-scrollbar {
-  width: 8px;
+/* ----------------------------------------
+   SCROLLBARS (SUBTLE & QUIET)
+   ---------------------------------------- */
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
 }
 
-.bg-scrollbar::-webkit-scrollbar-track {
-  background: #0d1017; /* parent bg */
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-.bg-scrollbar::-webkit-scrollbar-thumb {
-  background: #0d1017; /* same as bg → visually hidden */
-  border-radius: 10px;
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.25); /* slate-400 */
+  border-radius: 999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.4);
 }
 
 /* Firefox */
-.bg-scrollbar {
+.custom-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: #0d1017 #0d1017;
+  scrollbar-color: rgba(148, 163, 184, 0.3) transparent;
 }
 
-/* Hide scrollbar but keep scroll */
+/* ----------------------------------------
+   INVISIBLE SCROLLBAR (FOR DARK PANELS)
+   ---------------------------------------- */
+
+.bg-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.bg-scrollbar::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+
+.bg-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+/* ----------------------------------------
+   FULLY HIDDEN SCROLLBAR
+   ---------------------------------------- */
+
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
 .hide-scrollbar {
-  -ms-overflow-style: none;
   scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+/* ----------------------------------------
+   MOTION (SLOW, NATURAL)
+   ---------------------------------------- */
+
+.transition-all {
+  transition-property: background-color, color, border, box-shadow, transform;
+  transition-duration: 220ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1); /* natural easing */
+}
+
+/* ----------------------------------------
+   VERY SUBTLE GRADIENT DRIFT (OPTIONAL)
+   ---------------------------------------- */
+
+@keyframes soft-gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
+}
+
+.bg-gradient-to-br {
+  background-size: 180% 180%;
+  animation: soft-gradient 20s ease-in-out infinite;
 }

@@ -198,25 +198,17 @@ export default function DishForm({
       formData.append("preparationTime", preparationTime);
       formData.append("spiceLevel", spiceLevel);
 
+      // Map label -> name for backend
+      const variantsForApi = variants.map((v) => ({
+        name: v.label,
+        unit: v.unit,
+        quantity: v.quantity,
+        price: v.price,
+        isDefault: v.isDefault,
+        isAvailable: v.isAvailable,
+      }));
 
-
-     // ================================
-// MAP label -> name FOR BACKEND
-// ================================
-const variantsForApi = variants.map((v) => ({
-  name: v.label,          // 👈 THIS IS THE KEY FIX
-  unit: v.unit,
-  quantity: v.quantity,
-  price: v.price,
-  isDefault: v.isDefault,
-  isAvailable: v.isAvailable,
-}));
-
-    formData.append("variants", JSON.stringify(variantsForApi));
-
-
-    
-
+      formData.append("variants", JSON.stringify(variantsForApi));
       formData.append("addOnGroups", JSON.stringify(selectedAddOns));
 
       if (image) {
@@ -241,8 +233,8 @@ const variantsForApi = variants.map((v) => ({
   return (
     <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
-      <div className="bg-[#0D1017] border border-[#1F2532] rounded-xl p-6">
-        <h2 className="text-2xl font-bold text-white mb-6">
+      <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
+        <h2 className="text-2xl font-semibold text-white mb-6">
           {mode === "add" ? "Add New Dish" : "Edit Dish"}
         </h2>
 
@@ -253,7 +245,7 @@ const variantsForApi = variants.map((v) => ({
           </label>
           <div className="flex items-center gap-4">
             {imagePreview && (
-              <div className="relative w-32 h-32 rounded-lg overflow-hidden border border-[#232A37]">
+              <div className="relative w-32 h-32 rounded overflow-hidden border border-gray-700">
                 <img
                   src={imagePreview}
                   alt="Preview"
@@ -273,7 +265,7 @@ const variantsForApi = variants.map((v) => ({
             )}
 
             <label className="flex-1 cursor-pointer">
-              <div className="flex items-center justify-center gap-2 px-4 py-3 bg-[#12151D] border border-[#232A37] rounded-lg text-gray-300 hover:border-indigo-600 transition-colors">
+              <div className="flex items-center justify-center gap-2 px-4 py-3 bg-black border border-gray-700 rounded text-gray-300 hover:border-cyan-500">
                 <Upload className="w-5 h-5" />
                 <span>Upload Image</span>
               </div>
@@ -301,7 +293,7 @@ const variantsForApi = variants.map((v) => ({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g., Butter Chicken"
-              className="w-full px-4 py-3 bg-[#12151D] border border-[#232A37] rounded-lg text-white placeholder-gray-500 focus:border-indigo-600 focus:outline-none"
+              className="w-full px-4 py-3 bg-black border border-gray-700 rounded text-white placeholder-gray-500 focus:border-cyan-500 focus:outline-none"
               required
             />
           </div>
@@ -313,7 +305,7 @@ const variantsForApi = variants.map((v) => ({
             <select
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
-              className="w-full px-4 py-3 bg-[#12151D] border border-[#232A37] rounded-lg text-white focus:border-indigo-600 focus:outline-none"
+              className="w-full px-4 py-3 bg-black border border-gray-700 rounded text-white focus:border-cyan-500 focus:outline-none"
               required
             >
               <option value="">Select category</option>
@@ -335,7 +327,7 @@ const variantsForApi = variants.map((v) => ({
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Describe the dish..."
             rows={3}
-            className="w-full px-4 py-3 bg-[#12151D] border border-[#232A37] rounded-lg text-white placeholder-gray-500 focus:border-indigo-600 focus:outline-none resize-none"
+            className="w-full px-4 py-3 bg-black border border-gray-700 rounded text-white placeholder-gray-500 focus:border-cyan-500 focus:outline-none resize-none"
           />
         </div>
 
@@ -347,7 +339,7 @@ const variantsForApi = variants.map((v) => ({
             <select
               value={foodType}
               onChange={(e) => setFoodType(e.target.value)}
-              className="w-full px-4 py-3 bg-[#12151D] border border-[#232A37] rounded-lg text-white focus:border-indigo-600 focus:outline-none"
+              className="w-full px-4 py-3 bg-black border border-gray-700 rounded text-white focus:border-cyan-500 focus:outline-none"
             >
               {FOOD_TYPES.map((type) => (
                 <option key={type.value} value={type.value}>
@@ -366,7 +358,7 @@ const variantsForApi = variants.map((v) => ({
               value={preparationTime}
               onChange={(e) => setPreparationTime(Number(e.target.value))}
               min="1"
-              className="w-full px-4 py-3 bg-[#12151D] border border-[#232A37] rounded-lg text-white focus:border-indigo-600 focus:outline-none"
+              className="w-full px-4 py-3 bg-black border border-gray-700 rounded text-white focus:border-cyan-500 focus:outline-none"
             />
           </div>
 
@@ -377,7 +369,7 @@ const variantsForApi = variants.map((v) => ({
             <select
               value={spiceLevel}
               onChange={(e) => setSpiceLevel(e.target.value)}
-              className="w-full px-4 py-3 bg-[#12151D] border border-[#232A37] rounded-lg text-white focus:border-indigo-600 focus:outline-none"
+              className="w-full px-4 py-3 bg-black border border-gray-700 rounded text-white focus:border-cyan-500 focus:outline-none"
             >
               {SPICE_LEVELS.map((level) => (
                 <option key={level.value} value={level.value}>
@@ -390,13 +382,13 @@ const variantsForApi = variants.map((v) => ({
       </div>
 
       {/* Variants */}
-      <div className="bg-[#0D1017] border border-[#1F2532] rounded-xl p-6">
+      <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-white">Price Variants</h3>
+          <h3 className="text-lg font-medium text-white">Price Variants</h3>
           <button
             type="button"
             onClick={addVariant}
-            className="flex items-center gap-2 px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            className="flex items-center gap-2 px-3 py-2 bg-cyan-500 text-white rounded hover:bg-cyan-600"
           >
             <Plus className="w-4 h-4" />
             Add Variant
@@ -407,20 +399,20 @@ const variantsForApi = variants.map((v) => ({
           {variants.map((variant, index) => (
             <div
               key={index}
-              className="flex items-center gap-3 p-4 bg-[#12151D] border border-[#232A37] rounded-lg"
+              className="flex items-center gap-3 p-4 bg-black border border-gray-800 rounded"
             >
               <input
                 type="text"
                 value={variant.label}
                 onChange={(e) => updateVariant(index, "label", e.target.value)}
                 placeholder="Label (e.g., Regular)"
-                className="flex-1 px-3 py-2 bg-[#0D1017] border border-[#232A37] rounded text-white placeholder-gray-500 focus:border-indigo-600 focus:outline-none"
+                className="flex-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded text-white placeholder-gray-500 focus:border-cyan-500 focus:outline-none"
               />
 
               <select
                 value={variant.unit}
                 onChange={(e) => updateVariant(index, "unit", e.target.value)}
-                className="px-3 py-2 bg-[#0D1017] border border-[#232A37] rounded text-white focus:border-indigo-600 focus:outline-none"
+                className="px-3 py-2 bg-gray-900 border border-gray-700 rounded text-white focus:border-cyan-500 focus:outline-none"
               >
                 {UNITS.map((unit) => (
                   <option key={unit} value={unit}>
@@ -438,7 +430,7 @@ const variantsForApi = variants.map((v) => ({
                 min="0.01"
                 step="0.01"
                 placeholder="Qty"
-                className="w-20 px-3 py-2 bg-[#0D1017] border border-[#232A37] rounded text-white focus:border-indigo-600 focus:outline-none"
+                className="w-20 px-3 py-2 bg-gray-900 border border-gray-700 rounded text-white focus:border-cyan-500 focus:outline-none"
               />
 
               <input
@@ -450,16 +442,16 @@ const variantsForApi = variants.map((v) => ({
                 min="0"
                 step="0.01"
                 placeholder="Price"
-                className="w-28 px-3 py-2 bg-[#0D1017] border border-[#232A37] rounded text-white focus:border-indigo-600 focus:outline-none"
+                className="w-28 px-3 py-2 bg-gray-900 border border-gray-700 rounded text-white focus:border-cyan-500 focus:outline-none"
               />
 
               <button
                 type="button"
                 onClick={() => setDefaultVariant(index)}
-                className={`px-3 py-2 rounded text-sm font-medium transition-colors whitespace-nowrap ${
+                className={`px-3 py-2 rounded text-sm font-medium whitespace-nowrap ${
                   variant.isDefault
-                    ? "bg-indigo-600 text-white"
-                    : "bg-[#0D1017] border border-[#232A37] text-gray-400 hover:border-indigo-600"
+                    ? "bg-cyan-500 text-white"
+                    : "bg-gray-900 border border-gray-700 text-gray-400 hover:border-cyan-500"
                 }`}
               >
                 {variant.isDefault ? "Default" : "Set Default"}
@@ -469,7 +461,7 @@ const variantsForApi = variants.map((v) => ({
                 <button
                   type="button"
                   onClick={() => removeVariant(index)}
-                  className="p-2 text-red-400 hover:text-red-500 transition-colors"
+                  className="p-2 text-red-400 hover:text-red-500"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -480,8 +472,8 @@ const variantsForApi = variants.map((v) => ({
       </div>
 
       {/* Add-on Groups */}
-      <div className="bg-[#0D1017] border border-[#1F2532] rounded-xl p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">
+      <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
+        <h3 className="text-lg font-medium text-white mb-4">
           Add-on Groups (Optional)
         </h3>
 
@@ -492,13 +484,13 @@ const variantsForApi = variants.map((v) => ({
             {addOnGroups.map((group) => (
               <label
                 key={group._id}
-                className="flex items-center gap-3 p-3 bg-[#12151D] border border-[#232A37] rounded-lg cursor-pointer hover:border-indigo-600 transition-colors"
+                className="flex items-center gap-3 p-3 bg-black border border-gray-800 rounded cursor-pointer hover:border-cyan-500"
               >
                 <input
                   type="checkbox"
                   checked={selectedAddOns.includes(group._id)}
                   onChange={() => toggleAddOnGroup(group._id)}
-                  className="w-4 h-4 text-indigo-600 bg-[#0D1017] border-gray-600 rounded focus:ring-indigo-600"
+                  className="w-4 h-4 text-cyan-500 bg-gray-900 border-gray-700 rounded focus:ring-cyan-500"
                 />
                 <div className="flex-1">
                   <div className="text-white font-medium">{group.name}</div>
@@ -520,7 +512,7 @@ const variantsForApi = variants.map((v) => ({
         <button
           type="submit"
           disabled={loading}
-          className="flex-1 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="flex-1 py-3 bg-cyan-500 text-white rounded font-semibold hover:bg-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading
             ? "Saving..."

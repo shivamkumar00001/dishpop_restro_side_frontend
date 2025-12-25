@@ -5,7 +5,6 @@ import {
   Search,
   SlidersHorizontal,
   X,
-  Package,
   Calendar,
   TrendingUp,
   AlertCircle,
@@ -16,6 +15,7 @@ import useLiveOrders from "../../hooks/useLiveOrders";
 import OrderCard from "../../components/orders/OrderCard";
 import { saveOrders, loadOrders } from "../../utils/orderStorage";
 import { useAuth } from "../../context/AuthContext";
+import OrderColumn from "../../components/orders/OrderColumn";
 
 export default function OrderPage() {
   const { username } = useParams();
@@ -305,7 +305,7 @@ export default function OrderPage() {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-gray-800 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-12 h-12 border-4 border-gray-800 border-t-cyan-500 rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-400 text-sm">Loading orders...</p>
         </div>
       </div>
@@ -326,11 +326,11 @@ export default function OrderPage() {
           {/* Title */}
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-2xl font-bold text-blue-500">
-                Order Management
+              <h1 className="text-3xl font-bold">
+                Order <span className="text-cyan-400">Management</span>
               </h1>
               {owner && (
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-gray-400 text-sm mt-1">
                   {owner.restaurantName || owner.username}
                 </p>
               )}
@@ -341,7 +341,7 @@ export default function OrderPage() {
               <div
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium ${
                   connectionStatus === "connected"
-                    ? "bg-green-500/10 text-green-400 border border-green-500/20"
+                    ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20"
                     : connectionStatus === "disconnected"
                     ? "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
                     : "bg-red-500/10 text-red-400 border border-red-500/20"
@@ -350,7 +350,7 @@ export default function OrderPage() {
                 <span
                   className={`w-2 h-2 rounded-full ${
                     connectionStatus === "connected"
-                      ? "bg-green-400 animate-pulse"
+                      ? "bg-cyan-400 animate-pulse"
                       : connectionStatus === "disconnected"
                       ? "bg-yellow-400"
                       : "bg-red-400"
@@ -377,7 +377,7 @@ export default function OrderPage() {
                 onClick={() => setShowFilters(!showFilters)}
                 className={`p-2 rounded-lg transition-colors ${
                   showFilters
-                    ? "bg-blue-600 text-white"
+                    ? "bg-cyan-500 text-black"
                     : "bg-gray-800 hover:bg-gray-700 text-gray-400"
                 }`}
               >
@@ -399,35 +399,35 @@ export default function OrderPage() {
           {/* Stats */}
           <div className="flex items-center gap-6 text-sm mb-4 flex-wrap">
             <div className="flex items-center gap-2">
-              <span className="text-gray-500">Total:</span>
-              <span className="text-white font-medium">{stats.total}</span>
+              <span className="text-gray-400">Total:</span>
+              <span className="text-white font-semibold">{stats.total}</span>
             </div>
             <div className="w-px h-4 bg-gray-800"></div>
             <div className="flex items-center gap-2">
-              <span className="text-orange-500">Pending:</span>
-              <span className="text-orange-400 font-medium">
+              <span className="text-gray-400">Pending:</span>
+              <span className="text-cyan-400 font-semibold">
                 {stats.pending}
               </span>
             </div>
             <div className="w-px h-4 bg-gray-800"></div>
             <div className="flex items-center gap-2">
-              <span className="text-blue-500">Confirmed:</span>
-              <span className="text-blue-400 font-medium">
+              <span className="text-gray-400">Confirmed:</span>
+              <span className="text-cyan-400 font-semibold">
                 {stats.confirmed}
               </span>
             </div>
             <div className="w-px h-4 bg-gray-800"></div>
             <div className="flex items-center gap-2">
-              <span className="text-green-500">Completed:</span>
-              <span className="text-green-400 font-medium">
+              <span className="text-gray-400">Completed:</span>
+              <span className="text-green-400 font-semibold">
                 {stats.completed}
               </span>
             </div>
             <div className="w-px h-4 bg-gray-800"></div>
             <div className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-emerald-500" />
-              <span className="text-gray-500">Revenue:</span>
-              <span className="text-emerald-400 font-medium">
+              <TrendingUp className="w-4 h-4 text-cyan-400" />
+              <span className="text-gray-400">Revenue:</span>
+              <span className="text-cyan-400 font-semibold">
                 ₹{stats.revenue.toFixed(2)}
               </span>
             </div>
@@ -435,7 +435,7 @@ export default function OrderPage() {
 
           {/* Date Filters */}
           <div className="flex items-center gap-2 mb-4 overflow-x-auto">
-            <Calendar className="w-4 h-4 text-gray-500 flex-shrink-0" />
+            <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
             <div className="flex gap-2">
               {[
                 { value: "all", label: "All Time" },
@@ -446,10 +446,10 @@ export default function OrderPage() {
                 <button
                   key={option.value}
                   onClick={() => setDateFilter(option.value)}
-                  className={`px-3 py-1.5 text-sm rounded-lg transition-colors whitespace-nowrap ${
+                  className={`px-3 py-1.5 text-sm rounded-lg font-medium transition-colors whitespace-nowrap ${
                     dateFilter === option.value
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-800 hover:bg-gray-700 text-gray-400"
+                      ? "bg-cyan-500 text-black"
+                      : "bg-gray-900 hover:bg-gray-800 text-gray-400 border border-gray-800"
                   }`}
                 >
                   {option.label}
@@ -467,7 +467,7 @@ export default function OrderPage() {
                 placeholder="Search orders..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-10 py-3 bg-gray-900 border border-gray-800 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-10 pr-10 py-3 bg-gray-900 border border-gray-800 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
               />
               {searchQuery && (
                 <button
@@ -484,7 +484,7 @@ export default function OrderPage() {
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="flex-1 px-3 py-3 bg-gray-900 border border-gray-800 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 px-3 py-3 bg-gray-900 border border-gray-800 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 >
                   <option value="newest">Newest First</option>
                   <option value="oldest">Oldest First</option>
@@ -495,7 +495,7 @@ export default function OrderPage() {
                 <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
-                  className="flex-1 px-3 py-3 bg-gray-900 border border-gray-800 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 px-3 py-3 bg-gray-900 border border-gray-800 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 >
                   <option value="all">All Orders</option>
                   <option value="pending">Pending</option>
@@ -507,13 +507,13 @@ export default function OrderPage() {
             )}
 
             {hasActiveFilters && (
-              <div className="flex items-center justify-between text-xs text-gray-500 bg-gray-900 rounded-lg px-4 py-2.5 border border-gray-800">
+              <div className="flex items-center justify-between text-xs text-gray-400 bg-gray-900 rounded-lg px-4 py-2.5 border border-gray-800">
                 <span>
                   Showing {processedOrders.length} of {orders.length} orders
                 </span>
                 <button
                   onClick={clearFilters}
-                  className="text-blue-400 hover:text-blue-300 text-xs font-medium ml-4"
+                  className="text-cyan-400 hover:text-cyan-300 text-xs font-semibold ml-4"
                 >
                   Clear Filters
                 </button>
@@ -524,14 +524,14 @@ export default function OrderPage() {
       </header>
 
       {/* MAIN CONTENT */}
-      <main className="flex-1 overflow-hidden bg-gray-950">
+      <main className="flex-1 overflow-hidden bg-black">
         <div className="h-full grid grid-cols-1 md:grid-cols-3 gap-4 p-4">
           <OrderColumn
             title="Pending Orders"
             count={pendingOrders.length}
             orders={pendingOrders}
             onUpdate={handleUpdate}
-            color="orange"
+            color="cyan"
           />
 
           <OrderColumn
@@ -539,7 +539,7 @@ export default function OrderPage() {
             count={confirmedOrders.length}
             orders={confirmedOrders}
             onUpdate={handleUpdate}
-            color="blue"
+            color="cyan"
           />
 
           <OrderColumn
@@ -551,54 +551,6 @@ export default function OrderPage() {
           />
         </div>
       </main>
-    </div>
-  );
-}
-
-function OrderColumn({ title, count, orders, onUpdate, color }) {
-  const colorClasses = {
-    orange: "text-orange-400 bg-orange-500/10 border-orange-500/20",
-    blue: "text-blue-400 bg-blue-500/10 border-blue-500/20",
-    green: "text-green-400 bg-green-500/10 border-green-500/20",
-  };
-
-  const headerBorder = {
-    orange: "border-orange-500/30",
-    blue: "border-blue-500/30",
-    green: "border-green-500/30",
-  };
-
-  return (
-    <div className="flex flex-col h-full bg-gray-900 rounded-xl border border-gray-800 overflow-hidden shadow-xl">
-      <div
-        className={`px-4 py-4 border-b ${headerBorder[color]} bg-gray-950/50`}
-      >
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold text-white">{title}</h2>
-          <span
-            className={`px-3 py-1.5 rounded-full text-xs font-bold ${colorClasses[color]}`}
-          >
-            {count}
-          </span>
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
-        {orders.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center py-16">
-            <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mb-4">
-              <Package className="w-8 h-8 text-gray-600" />
-            </div>
-            <p className="text-sm text-gray-500">No orders</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {orders.map((order) => (
-              <OrderCard key={order._id} order={order} onUpdate={onUpdate} />
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 }
