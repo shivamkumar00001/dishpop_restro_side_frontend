@@ -898,7 +898,7 @@ export default function OrderPage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => navigate(-1)}
-                className="p-2 bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white rounded-lg transition-colors"
+                className="p-2  hover:bg-gray-700 text-gray-400 hover:text-white rounded-lg transition-colors"
                 title="Go back"
               >
                 <ArrowLeft className="w-5 h-5" />
