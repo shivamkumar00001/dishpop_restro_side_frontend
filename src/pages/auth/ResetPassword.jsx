@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { toast } from "react-hot-toast";
 import { useNavigate, useLocation } from "react-router-dom";
-import api from "../../services/api"; // ✅ CENTRAL API (ENV-BASED)
+import { Lock } from "lucide-react";
+import api from "../../services/api";
 
 export default function ResetPassword() {
   const navigate = useNavigate();
@@ -38,11 +39,8 @@ export default function ResetPassword() {
 
       toast.success(data.message || "Password reset successfully!");
       navigate("/login");
-
     } catch (err) {
-      toast.error(
-        err.response?.data?.message || "Reset failed!"
-      );
+      toast.error(err.response?.data?.message || "Reset failed!");
     } finally {
       setLoading(false);
     }
@@ -50,40 +48,64 @@ export default function ResetPassword() {
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center px-4">
-      <div className="bg-neutral-900 p-8 rounded-2xl shadow-lg w-full max-w-md border border-neutral-800">
-        <h2 className="text-2xl font-bold text-white text-center mb-6">
-          Reset Your Password 🔐
-        </h2>
+      {/* Ambient Glow */}
+      <div className="pointer-events-none fixed inset-0 -z-10">
+        <div className="absolute -top-32 -left-32 w-96 h-96 bg-cyan-500/20 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[140px]" />
+      </div>
 
-        <form onSubmit={handleReset} className="space-y-4">
+      <div className="w-full max-w-md bg-gradient-to-br from-gray-900 to-black p-8 rounded-2xl border border-gray-800 shadow-2xl">
+        <h2 className="text-3xl font-bold text-white text-center mb-2">
+          Reset Password
+        </h2>
+        <p className="text-gray-400 text-sm text-center mb-8">
+          Choose a new secure password
+        </p>
+
+        <form onSubmit={handleReset} className="space-y-6">
+          {/* NEW PASSWORD */}
           <div>
-            <label className="text-gray-300 text-sm">New Password</label>
-            <input
-              type="password"
-              placeholder="Enter new password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full mt-1 bg-neutral-800 text-white p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-              required
-            />
+            <label className="text-xs text-gray-400">New Password</label>
+            <div className="mt-1 flex items-center gap-3 px-4 py-3 rounded-xl bg-black border border-gray-700 focus-within:border-cyan-500 transition">
+              <Lock size={18} className="text-gray-400" />
+              <input
+                type="password"
+                placeholder="Enter new password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-transparent text-white text-sm placeholder-gray-500 outline-none"
+                required
+              />
+            </div>
           </div>
 
+          {/* CONFIRM PASSWORD */}
           <div>
-            <label className="text-gray-300 text-sm">Confirm Password</label>
-            <input
-              type="password"
-              placeholder="Confirm new password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full mt-1 bg-neutral-800 text-white p-3 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-              required
-            />
+            <label className="text-xs text-gray-400">Confirm Password</label>
+            <div className="mt-1 flex items-center gap-3 px-4 py-3 rounded-xl bg-black border border-gray-700 focus-within:border-cyan-500 transition">
+              <Lock size={18} className="text-gray-400" />
+              <input
+                type="password"
+                placeholder="Confirm new password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full bg-transparent text-white text-sm placeholder-gray-500 outline-none"
+                required
+              />
+            </div>
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 transition text-white py-3 rounded-lg font-semibold"
+            className={`
+              w-full py-3 rounded-xl font-semibold transition-all
+              ${
+                loading
+                  ? "bg-gray-600 cursor-not-allowed"
+                  : "bg-cyan-500 hover:bg-cyan-600"
+              }
+            `}
           >
             {loading ? "Resetting..." : "Reset Password"}
           </button>

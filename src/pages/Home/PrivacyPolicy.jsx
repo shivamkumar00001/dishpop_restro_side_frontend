@@ -170,8 +170,7 @@ export default function PrivacyPolicy() {
             Privacy Policy, please contact us at:
           </p>
           <p className="text-cyan-400 font-medium">
-            dispopofficial@gmail.com
-          </p>
+              connect@dishpop.in          </p>
         </section>
       </div>
     </div>
