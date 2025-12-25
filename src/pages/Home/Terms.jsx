@@ -157,7 +157,7 @@ export default function TermsOfService() {
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold">17. Contact</h2>
           <p className="text-gray-300 font-medium">
-            Email: dispopofficial@gmail.com <br />
+            Email: connect@dishpop.in   <br />
            </p>
         </section>
       </div>

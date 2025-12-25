@@ -10,16 +10,19 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const fetchOwner = async () => {
       try {
-        const { data } = await api.get("/auth/me");
-        setOwner(data.user);
+        const { data } = await api.get("/auth/me", {
+          withCredentials: true, // 🔥 important for cookies
+        });
+
+        // ✅ normalize response
+        setOwner(data.user || data.owner || null);
       } catch (err) {
-        // ✅ 401 is NORMAL when not logged in
         if (err.response?.status !== 401) {
           console.error("Auth check failed:", err);
         }
         setOwner(null);
       } finally {
-        setLoading(false); // 🔥 always stop loading
+        setLoading(false);
       }
     };
 
