@@ -27,6 +27,7 @@ import AddDishPage from "../pages/Menu/AddDishPage";
 import EditDishPage from "../pages/Menu/EditDishPage";
 import QrPage from "../pages/Menu/QrPage";
 import OrdersPage from "../pages/ordermanage/OrderPage";
+import ARModelRequest from "../pages/ArmodelRequest";
 
 /* ---------- 404 ---------- */
 import NotFound from "../pages/NotFound/NotFound";
@@ -60,6 +61,7 @@ export default function AppRoutes() {
 
         {/* OWNER DASHBOARD */}
         <Route path="/:username/dashboard" element={<Dashboard />} />
+<Route path="/request-ar-model/:dishId" element={<ARModelRequest />} />
 
         {/* 🔹 Enhanced Subscription Page */}
         <Route
