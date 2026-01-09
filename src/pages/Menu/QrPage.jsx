@@ -1,31 +1,24 @@
 import React, { useEffect, useState } from "react";
 import { ArrowLeft, Download, Copy, Printer } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
-import  api  from "../../services/api";
+import api from "../../services/api";
 import qrService from "../../services/qr.service.js";
 
 const QrPage = () => {
   const navigate = useNavigate();
-  const params = useParams();
+  const { username: paramUsername } = useParams();
 
   const [username, setUsername] = useState(null);
   const [qrImage, setQrImage] = useState(null);
   const [copied, setCopied] = useState(false);
 
-  /* =====================================================
-     RESOLVE USERNAME (PARAM → PROFILE FALLBACK)
-  ===================================================== */
+  /* ================= USERNAME ================= */
   useEffect(() => {
-    // 1️⃣ If username exists in URL
-    if (params.username) {
-      const Set = () =>{
-      setUsername(params.username);
-      }
-      Set();
+    if (paramUsername) {
+      setUsername(paramUsername);
       return;
     }
 
-    // 2️⃣ Fallback: fetch from logged-in profile
     const fetchProfile = async () => {
       try {
         const { data } = await api.get("/auth/profile");
@@ -36,30 +29,24 @@ const QrPage = () => {
     };
 
     fetchProfile();
-  }, [params.username]);
+  }, [paramUsername]);
 
-  /* =====================================================
-     GENERATE QR
-  ===================================================== */
+  /* ================= QR ================= */
+  const qrLink = username
+    ? `https://user.dishpop.in/${username}`
+    : "";
+
   useEffect(() => {
     if (!username) return;
-
-    const qrLink = `https://dishpop-user-side-frontend-lw9q.vercel.app/${username}`;
     qrService.generateQR(qrLink).then(setQrImage);
   }, [username]);
 
-  const qrLink = username
-    ? `https://dishpop-user-side-frontend-lw9q.vercel.app/${username}`
-    : "";
-
-  /* =====================================================
-     ACTIONS
-  ===================================================== */
+  /* ================= ACTIONS ================= */
   const downloadQR = () => {
     if (!qrImage) return;
     const link = document.createElement("a");
     link.href = qrImage;
-    link.download = `dinear-qr-${username}.png`;
+    link.download = `dishpop-qr-${username}.png`;
     link.click();
   };
 
@@ -77,98 +64,94 @@ const QrPage = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  /* =====================================================
-     UI
-  ===================================================== */
   return (
-    <div
-      className="min-h-screen p-6 flex flex-col items-center"
-      style={{ backgroundColor: "#0C0F14" }}
-    >
-      {/* BACK */}
-      <div className="w-full max-w-4xl mb-8">
+    <div className="bg-black text-white min-h-screen px-4 py-20">
+      <div className="max-w-6xl mx-auto">
+
+        {/* BACK */}
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1C222B] text-[#9AA0A6]
-          hover:text-[#E6E9EF] transition"
+          className="flex items-center gap-2 mb-10 text-gray-400 hover:text-white transition"
         >
-          <ArrowLeft className="w-4 h-4" />
-          <span className="text-sm font-medium">Back</span>
+          <ArrowLeft size={18} />
+          Back
         </button>
-      </div>
 
-      {/* CONTENT */}
-      <div className="w-full max-w-4xl space-y-8">
-        {/* HEADER */}
-        <div className="text-center space-y-3">
-          <h1 className="text-4xl font-semibold text-[#E6E9EF]">
-            Restaurant QR Code
-          </h1>
-          <p className="text-sm text-[#9AA0A6]">
-            Share this QR code with your customers
-          </p>
-        </div>
+        <div className="grid md:grid-cols-2 gap-12 items-center">
 
-        {/* QR CARD */}
-        <div className="mx-auto w-fit p-8 rounded-2xl bg-[#1A1F25]">
+          {/* ================= LEFT INFO ================= */}
           <div className="space-y-6">
-            {/* QR IMAGE */}
-            <div className="mx-auto w-fit">
-              {qrImage ? (
-                <div className="p-6 bg-white rounded-xl">
-                  <img src={qrImage} className="w-64 h-64" alt="QR Code" />
-                </div>
-              ) : (
-                <div className="w-64 h-64 flex items-center justify-center rounded-xl bg-[#1C222B]">
-                  <div className="text-center space-y-3">
-                    <div className="w-8 h-8 border-2 border-t-transparent border-blue-500 rounded-full animate-spin mx-auto" />
-                    <p className="text-sm text-[#9AA0A6]">
-                      Generating QR Code...
-                    </p>
-                  </div>
-                </div>
-              )}
+            <h1 className="text-5xl font-bold">
+              Restaurant <span className="text-cyan-400">QR Code</span>
+            </h1>
+
+            <p className="text-gray-400 text-lg">
+              Place this QR code on your tables or counter so customers can
+              instantly view your digital menu.
+            </p>
+
+            <div className="bg-gray-900 rounded-xl p-4 border border-gray-800">
+              <p className="text-sm text-gray-400 mb-1">Menu URL</p>
+              <p className="text-sm font-mono break-all">{qrLink}</p>
             </div>
 
-            {/* LINK */}
-            <div className="p-4 rounded-lg bg-[#11151C]">
-              <p className="text-xs mb-1 text-[#9AA0A6]">Menu URL</p>
-              <p className="text-xs font-mono text-[#E6E9EF] break-all">
-                {qrLink}
-              </p>
-            </div>
-
-            {/* ACTIONS */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="flex gap-3 flex-wrap">
               <button
                 onClick={downloadQR}
-                className="px-4 py-3 rounded-lg bg-blue-500 hover:bg-blue-400
-                text-white flex items-center justify-center gap-2 transition"
+                className="flex items-center gap-2 px-5 py-3 rounded-lg bg-cyan-500 hover:bg-cyan-600 font-semibold transition"
               >
-                <Download className="w-4 h-4" />
+                <Download size={16} />
                 Download
               </button>
 
               <button
                 onClick={printQR}
-                className="px-4 py-3 rounded-lg bg-[#1C222B] hover:bg-[#2A313B]
-                text-white flex items-center justify-center gap-2 transition"
+                className="flex items-center gap-2 px-5 py-3 rounded-lg bg-gray-800 hover:bg-gray-700 transition"
               >
-                <Printer className="w-4 h-4" />
+                <Printer size={16} />
                 Print
               </button>
 
               <button
                 onClick={copyLink}
-                className={`px-4 py-3 rounded-lg bg-[#1C222B]
-                flex items-center justify-center gap-2 transition
-                ${copied ? "text-green-400" : "text-white"}`}
+                className={`flex items-center gap-2 px-5 py-3 rounded-lg border transition
+                  ${
+                    copied
+                      ? "border-green-500 text-green-400"
+                      : "border-gray-700 hover:border-cyan-400"
+                  }
+                `}
               >
-                <Copy className="w-4 h-4" />
-                {copied ? "Copied!" : "Copy"}
+                <Copy size={16} />
+                {copied ? "Copied!" : "Copy Link"}
               </button>
             </div>
           </div>
+
+          {/* ================= RIGHT CARD ================= */}
+          <div className="bg-gradient-to-br from-gray-900 to-black p-8 rounded-2xl border border-gray-800">
+            <h2 className="text-2xl font-semibold mb-6 text-center">
+              Scan to View Menu
+            </h2>
+
+            <div className="flex justify-center">
+              {qrImage ? (
+                <div className="bg-white p-6 rounded-xl">
+                  <img
+                    src={qrImage}
+                    alt="DishPop QR"
+                    className="w-64 h-64"
+                  />
+                </div>
+              ) : (
+                <div className="w-64 h-64 flex flex-col items-center justify-center rounded-xl bg-black border border-gray-700">
+                  <div className="w-8 h-8 border-2 border-t-transparent border-cyan-500 rounded-full animate-spin mb-3" />
+                  <p className="text-sm text-gray-400">Generating QR...</p>
+                </div>
+              )}
+            </div>
+          </div>
+
         </div>
       </div>
     </div>

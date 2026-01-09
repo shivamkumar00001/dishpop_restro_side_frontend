@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Check, Loader2 } from "lucide-react";
 import api from "../../services/api";
+import { useNavigate } from "react-router-dom";
 
 const PLANS = [
   {
@@ -16,7 +17,7 @@ const PLANS = [
     original: 9000,
     price: 2790,
     off: 69,
-    popular: true,
+    
   },
   {
     key: "YEARLY",
@@ -24,6 +25,7 @@ const PLANS = [
     original: 36000,
     price: 7900,
     off: 78,
+    popular: true,
   },
 ];
 
@@ -33,6 +35,7 @@ export default function SubscriptionPage() {
   const [currentPlan, setCurrentPlan] = useState(null);
   const [trialEnd, setTrialEnd] = useState(null);
   const [currentPeriodEnd, setCurrentPeriodEnd] = useState(null);
+  const navigate = useNavigate();
 
   const loadRazorpayScript = () =>
     new Promise((resolve) => {
@@ -137,6 +140,15 @@ const hasActiveSubscription = () => {
 
   return (
     <div className="bg-black text-white min-h-screen px-4 py-20">
+      <div className="max-w-6xl mx-auto mb-6">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 text-gray-400 hover:text-cyan-400 transition"
+        >
+          ← Back
+        </button>
+      </div>
+
       <div className="max-w-6xl mx-auto text-center mb-14">
         <h1 className="text-5xl font-bold">
           Choose Your <span className="text-cyan-400">Plan</span>
