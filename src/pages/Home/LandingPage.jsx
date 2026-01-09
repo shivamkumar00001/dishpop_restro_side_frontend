@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Camera, Utensils, TrendingUp, Users, ChevronRight } from 'lucide-react';
 import DynamicGradientText from '../../components/DynamicGradient';
@@ -11,6 +11,22 @@ const LandingPage = () => {
   const navigate = useNavigate();
   const canvasRef = useRef(null);
     const { owner, loading } = useAuth(); // ✅ FIX
+    const [wantsToProceed, setWantsToProceed] = useState(false);
+const hasNavigated = useRef(false);
+
+useEffect(() => {
+  if (hasNavigated.current) return;
+  if (!wantsToProceed) return;
+  if (loading) return;
+
+  hasNavigated.current = true;
+
+  if (owner?.username) {
+    navigate(`/${owner.username}/dashboard`, { replace: true });
+  } else {
+    navigate("/register", { replace: true });
+  }
+}, [wantsToProceed, owner, loading, navigate]);
 
 
   useEffect(() => {
@@ -146,13 +162,16 @@ const LandingPage = () => {
   },
 ];
  
-const handleGetStarted = () => {
+// const handleGetStarted = () => {
  
-  if (owner?.username) {
-    navigate(`/${owner.username}/dashboard`);
-  } else {
-    navigate("/register");
-  }
+//   if (owner?.username) {
+//     navigate(`/${owner.username}/dashboard`);
+//   } else {
+//     navigate("/register");
+//   }
+// };
+const handleGetStarted = () => {
+  setWantsToProceed(true);
 };
 
 

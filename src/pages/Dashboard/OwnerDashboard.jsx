@@ -49,8 +49,7 @@ export default function Dashboard() {
     loadData();
   }, [username, navigate]);
 
-  console.log("Dashboard room:", username);
-
+ 
   /* ===============================
      LOGOUT
   =============================== */
