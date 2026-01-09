@@ -33,6 +33,7 @@ import ARModelRequest from "../pages/ArmodelRequest";
 import NotFound from "../pages/NotFound/NotFound";
 import CategoriesPage from "../pages/Menu/CategoriesPage";
 import AddonManager from "../pages/Addons/AddonManager";
+import BillingPage from "../pages/Billing/BillingPage";
 
 export default function AppRoutes() {
   return (
@@ -87,6 +88,10 @@ export default function AppRoutes() {
       <Route path="/:username/addons" element={<AddonManager/>} />
 
       <Route path="/:username/menu/categories" element={<CategoriesPage/>} />
+
+      <Route path="/billing" element={<BillingPage/>} />
+      <Route path="/:username/billing" element={<BillingPage />} />
+
 
     </Routes>
   );
