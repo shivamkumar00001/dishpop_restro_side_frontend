@@ -32,6 +32,16 @@ const menuApi = {
     return axiosClient.get(`/restaurants/${username}/dishes/${dishId}`);
   },
 
+
+  /* ================= TAGS ================= */
+  getTags() {
+    return axiosClient.get(`/tags`);
+  },
+
+  getTagByKey(key) {
+    return axiosClient.get(`/tags/${key}`);
+  },
+
   /* ================= CATEGORY ================= */
   getCategories(username) {
     return axiosClient.get(`/restaurants/${username}/categories`);

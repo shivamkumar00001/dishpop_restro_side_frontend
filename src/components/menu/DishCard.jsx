@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { Edit2, Trash2, Loader2, ChefHat, Clock, Flame } from "lucide-react";
+import { Edit2, Trash2, Loader2, ChefHat, Clock, Flame, Box } from "lucide-react";
 
 const FOOD_TYPE_COLORS = {
   veg: "bg-green-500",
@@ -39,6 +39,7 @@ export default function DishCard({
   onToggleAvailability,
   onEdit,
   onDelete,
+  onARModel,
 }) {
   const [toggling, setToggling] = useState(false);
   const debounceRef = useRef(null);
@@ -60,6 +61,8 @@ export default function DishCard({
       }
     }, 120);
   };
+
+  const hasARModel = dish.arModel?.isAvailable && (dish.arModel?.glb || dish.arModel?.usdz);
 
   return (
     <div
@@ -94,6 +97,14 @@ export default function DishCard({
           {dish.isFeatured && (
             <div className="absolute top-2 right-2 bg-yellow-500 text-black text-xs font-bold px-1.5 py-0.5 rounded">
               ⭐
+            </div>
+          )}
+
+          {/* AR Model Badge */}
+          {hasARModel && (
+            <div className="absolute bottom-2 right-2 bg-purple-600 text-white text-xs font-semibold px-1.5 py-0.5 rounded flex items-center gap-1">
+              <Box className="w-3 h-3" />
+              AR
             </div>
           )}
         </div>
@@ -168,6 +179,19 @@ export default function DishCard({
               >
                 <Edit2 className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Edit</span>
+              </button>
+
+              <button
+                onClick={() => onARModel(dish)}
+                className={`px-3 py-1.5 rounded bg-black border text-sm flex items-center gap-1 ${
+                  hasARModel
+                    ? "border-purple-600 text-purple-400 hover:border-purple-500"
+                    : "border-gray-700 text-gray-300 hover:border-purple-600 hover:text-purple-400"
+                }`}
+                title={hasARModel ? "Update AR Model" : "Add AR Model"}
+              >
+                <Box className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">AR</span>
               </button>
 
               <button

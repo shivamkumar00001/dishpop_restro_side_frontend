@@ -6,7 +6,9 @@ import {
   XMarkIcon,
   Cog6ToothIcon,
   QrCodeIcon,
+  DocumentTextIcon, // ✅ VALID BILLING ICON
 } from "@heroicons/react/24/outline";
+
 import { useEffect, useState } from "react";
 import { Link, useParams, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -39,6 +41,10 @@ export default function Sidebar() {
     { label: "Dashboard", icon: HomeIcon, path: `${basePath}/dashboard` },
     { label: "Digital Menu", icon: CubeIcon, path: `${basePath}/dishes` },
     { label: "Orders", icon: ClipboardDocumentListIcon, path: `${basePath}/orders` },
+
+    // ✅ BILLING (FIXED)
+    { label: "Billing", icon: DocumentTextIcon, path: `${basePath}/billing` },
+
     { label: "Get QR", icon: QrCodeIcon, path: `${basePath}/qr` },
     { label: "Subscribe", icon: BellIcon, path: `${basePath}/subscribe` },
     { label: "Settings", icon: Cog6ToothIcon, path: `/settings` },
@@ -49,12 +55,10 @@ export default function Sidebar() {
       <aside
         className={`
           w-64 bg-[#11151c]
-          min-h-[100vh] h-auto
+          min-h-screen
           flex flex-col
-
           fixed lg:sticky top-0 left-0
           z-50
-
           transition-transform duration-300
           ${open ? "translate-x-0" : "-translate-x-full"}
           lg:translate-x-0
@@ -68,7 +72,7 @@ export default function Sidebar() {
           <XMarkIcon className="w-6 h-6" />
         </button>
 
-        {/* MENU */}
+        {/* Menu */}
         <nav className="px-3 py-2">
           <ul className="space-y-2">
             {menuItems.map(({ label, icon: Icon, path }) => {
@@ -94,7 +98,7 @@ export default function Sidebar() {
           </ul>
         </nav>
 
-        {/* FOOTER */}
+        {/* Footer */}
         <div className="mt-auto p-4">
           <div className="flex items-center gap-3 rounded-lg bg-[#293042] p-3">
             <div className="h-9 w-9 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold">
@@ -110,7 +114,7 @@ export default function Sidebar() {
         </div>
       </aside>
 
-      {/* MOBILE OVERLAY */}
+      {/* Mobile Overlay */}
       {open && (
         <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"

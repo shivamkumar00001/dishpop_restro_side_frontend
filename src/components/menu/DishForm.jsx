@@ -19,6 +19,25 @@ const SPICE_LEVELS = [
 
 const UNITS = ["plate", "bowl", "cup", "piece", "g", "kg", "ml", "l"];
 
+// Color mapping for tags
+const TAG_COLORS = {
+  red: "bg-red-500/20 text-red-400 border-red-500/50",
+  orange: "bg-orange-500/20 text-orange-400 border-orange-500/50",
+  amber: "bg-amber-500/20 text-amber-400 border-amber-500/50",
+  yellow: "bg-yellow-500/20 text-yellow-400 border-yellow-500/50",
+  lime: "bg-lime-500/20 text-lime-400 border-lime-500/50",
+  green: "bg-green-500/20 text-green-400 border-green-500/50",
+  emerald: "bg-emerald-500/20 text-emerald-400 border-emerald-500/50",
+  teal: "bg-teal-500/20 text-teal-400 border-teal-500/50",
+  cyan: "bg-cyan-500/20 text-cyan-400 border-cyan-500/50",
+  blue: "bg-blue-500/20 text-blue-400 border-blue-500/50",
+  indigo: "bg-indigo-500/20 text-indigo-400 border-indigo-500/50",
+  violet: "bg-violet-500/20 text-violet-400 border-violet-500/50",
+  purple: "bg-purple-500/20 text-purple-400 border-purple-500/50",
+  pink: "bg-pink-500/20 text-pink-400 border-pink-500/50",
+  rose: "bg-rose-500/20 text-rose-400 border-rose-500/50",
+};
+
 export default function DishForm({
   mode = "add",
   initial = {},
@@ -52,8 +71,10 @@ export default function DishForm({
     ]
   );
 
-  // Categories and add-ons
+  // Categories, tags, and add-ons
   const [categories, setCategories] = useState([]);
+  const [availableTags, setAvailableTags] = useState([]);
+  const [selectedTags, setSelectedTags] = useState(initial.tags || []);
   const [addOnGroups, setAddOnGroups] = useState([]);
   const [selectedAddOns, setSelectedAddOns] = useState(
     initial.addOnGroups?.map((g) => g._id || g) || []
@@ -72,12 +93,17 @@ export default function DishForm({
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [categoriesRes, addOnsRes] = await Promise.all([
+        console.log("menuApi:", menuApi);
+        console.log("menuApi keys:", Object.keys(menuApi));
+        const [categoriesRes, tagsRes, addOnsRes] = await Promise.all([
           menuApi.getCategories(username),
+           
+          menuApi.getTags(),
           menuApi.getAddOnGroups(username),
         ]);
 
         setCategories(categoriesRes.data.data || []);
+        setAvailableTags(tagsRes.data.data || []);
         setAddOnGroups(addOnsRes.data.data || []);
       } catch (err) {
         console.error("Failed to load metadata:", err);
@@ -91,13 +117,11 @@ export default function DishForm({
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Validate file size (5MB)
       if (file.size > 5 * 1024 * 1024) {
         alert("File size must be less than 5MB");
         return;
       }
 
-      // Validate file type
       const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
       if (!validTypes.includes(file.type)) {
         alert("Only JPEG, PNG, and WebP images are allowed");
@@ -138,7 +162,6 @@ export default function DishForm({
 
     const updated = variants.filter((_, i) => i !== index);
 
-    // If removed variant was default, set first as default
     if (variants[index].isDefault && updated.length > 0) {
       updated[0].isDefault = true;
     }
@@ -155,6 +178,15 @@ export default function DishForm({
     );
   };
 
+  // Tag management
+  const toggleTag = (tagKey) => {
+    setSelectedTags((prev) =>
+      prev.includes(tagKey)
+        ? prev.filter((key) => key !== tagKey)
+        : [...prev, tagKey]
+    );
+  };
+
   // Toggle add-on group selection
   const toggleAddOnGroup = (groupId) => {
     setSelectedAddOns((prev) =>
@@ -168,7 +200,6 @@ export default function DishForm({
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validation
     if (!name.trim()) {
       alert("Dish name is required");
       return;
@@ -179,7 +210,6 @@ export default function DishForm({
       return;
     }
 
-    // Validate variants
     for (const variant of variants) {
       if (!variant.label || !variant.price) {
         alert("All variants must have a label and price");
@@ -198,7 +228,6 @@ export default function DishForm({
       formData.append("preparationTime", preparationTime);
       formData.append("spiceLevel", spiceLevel);
 
-      // Map label -> name for backend
       const variantsForApi = variants.map((v) => ({
         name: v.label,
         unit: v.unit,
@@ -209,6 +238,7 @@ export default function DishForm({
       }));
 
       formData.append("variants", JSON.stringify(variantsForApi));
+      formData.append("tags", JSON.stringify(selectedTags));
       formData.append("addOnGroups", JSON.stringify(selectedAddOns));
 
       if (image) {
@@ -379,6 +409,35 @@ export default function DishForm({
             </select>
           </div>
         </div>
+      </div>
+
+      {/* Tags Section */}
+      <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
+        <h3 className="text-lg font-medium text-white mb-4">
+          Tags (Optional)
+        </h3>
+
+        {availableTags.length === 0 ? (
+          <p className="text-gray-400 text-sm">No tags available</p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {availableTags.map((tag) => (
+              <button
+                key={tag.key}
+                type="button"
+                onClick={() => toggleTag(tag.key)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-all ${
+                  selectedTags.includes(tag.key)
+                    ? TAG_COLORS[tag.color] || "bg-gray-700 text-white border-gray-600"
+                    : "bg-black border-gray-700 text-gray-400 hover:border-gray-600"
+                }`}
+              >
+                <span className="text-lg">{tag.icon}</span>
+                <span className="text-sm font-medium">{tag.name}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Variants */}

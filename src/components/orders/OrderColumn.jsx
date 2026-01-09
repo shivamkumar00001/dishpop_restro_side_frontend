@@ -2,7 +2,7 @@ import React from "react";
 import { Package } from "lucide-react";
 import OrderCard from "./OrderCard";
 
-export default function OrderColumn({ title, count, orders, onUpdate, color }) {
+export default function OrderColumn({ title, count, orders, onUpdate, color, allOrders = [] }) {
   const colorClasses = {
     cyan: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20",
     green: "text-green-400 bg-green-500/10 border-green-500/20",
@@ -39,7 +39,12 @@ export default function OrderColumn({ title, count, orders, onUpdate, color }) {
         ) : (
           <div className="space-y-4">
             {orders.map((order) => (
-              <OrderCard key={order._id} order={order} onUpdate={onUpdate} />
+              <OrderCard 
+                key={order._id} 
+                order={order} 
+                onUpdate={onUpdate}
+                allOrders={allOrders} // 🔥 Pass all orders for session grouping
+              />
             ))}
           </div>
         )}
