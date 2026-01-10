@@ -184,6 +184,7 @@ export default function AppRoutes() {
         <Route path="/:username/dish/:id/edit" element={<EditDishPage />} />
         <Route path="/:username/qr" element={<QrPage />} />
         <Route path="/:username/orders" element={<OrdersPage />} />
+        <Route path="/:username/billing" element={<BillingPage/>} />
 
       </Route>
 
