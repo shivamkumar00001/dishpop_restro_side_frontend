@@ -596,6 +596,7 @@ export default function OrderPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const updatingRef = useRef(false);
+  const updatingOrderIdRef = useRef(null); // 🔥 Track which specific order is being updated
   const [connectionStatus, setConnectionStatus] = useState("connecting");
 
   // Filters
@@ -642,12 +643,17 @@ export default function OrderPage() {
      LIVE SOCKET UPDATES
   =============================== */
   const handleOrderEvent = useCallback((type, order) => {
-    if (updatingRef.current) {
-      console.log("⏭️ Skipping socket update during manual update");
+    // 🔥 FIX: Only skip updates for the specific order being manually updated
+    // AND only for status changes (not for billed field updates)
+    if (updatingRef.current && updatingOrderIdRef.current === order._id) {
+      console.log(`⏭️ Skipping socket update for order ${order._id?.slice(-6)} during manual update`);
       return;
     }
 
-    console.log(`📡 Socket event: ${type}`, order);
+    console.log(`📡 Socket event: ${type}`, order._id?.slice(-6), {
+      billed: order.billed,
+      billId: order.billId
+    });
 
     setOrders((prev) => {
       const prevArray = Array.isArray(prev) ? prev : [];
@@ -659,7 +665,13 @@ export default function OrderPage() {
         }
         updated = [order, ...prevArray];
       } else if (type === "updated" || type === "replaced") {
-        updated = prevArray.map((o) => (o._id === order._id ? order : o));
+        // 🔥 FIX: Properly merge the updated order with existing data
+        updated = prevArray.map((o) => {
+          if (o._id === order._id) {
+            return { ...o, ...order }; // Merge to preserve all fields including 'billed'
+          }
+          return o;
+        });
       } else if (type === "deleted") {
         updated = prevArray.filter((o) => o._id !== order);
       } else {
@@ -715,6 +727,7 @@ export default function OrderPage() {
       if (!usernameToUpdate) return;
 
       updatingRef.current = true;
+      updatingOrderIdRef.current = id; // 🔥 Track specific order
       let previousOrders = null;
 
       setOrders((prev) => {
@@ -733,10 +746,12 @@ export default function OrderPage() {
         await updateOrderStatus(usernameToUpdate, id, status);
         setTimeout(() => {
           updatingRef.current = false;
+          updatingOrderIdRef.current = null; // 🔥 Clear tracked order
         }, 1500);
       } catch (error) {
         console.error("Failed to update order:", error);
         updatingRef.current = false;
+        updatingOrderIdRef.current = null; // 🔥 Clear tracked order
 
         if (previousOrders) {
           setOrders(previousOrders);
@@ -1111,6 +1126,7 @@ export default function OrderPage() {
             orders={pendingOrders}
             onUpdate={handleUpdate}
             color="cyan"
+            allOrders={processedOrders}
           />
 
           <OrderColumn
@@ -1119,6 +1135,7 @@ export default function OrderPage() {
             orders={confirmedOrders}
             onUpdate={handleUpdate}
             color="cyan"
+            allOrders={processedOrders}
           />
 
           <OrderColumn
@@ -1127,6 +1144,7 @@ export default function OrderPage() {
             orders={completedOrders}
             onUpdate={handleUpdate}
             color="green"
+            allOrders={processedOrders}
           />
         </div>
       </main>

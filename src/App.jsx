@@ -41,6 +41,8 @@ import { AuthProvider } from "./context/AuthContext";
 import { autoUnlockSound } from "./utils/soundManager";
 import { Toaster } from "react-hot-toast";
 
+
+
 function App() {
   useEffect(() => {
     const unlock = () => {

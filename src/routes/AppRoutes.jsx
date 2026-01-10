@@ -137,6 +137,7 @@ import BillingEdit from "../pages/billing/BillingEdit";
 /* ---------- OTHERS ---------- */
 import CategoriesPage from "../pages/Menu/CategoriesPage";
 import AddonManager from "../pages/Addons/AddonManager";
+import BillingPage from "../pages/Billing/BillingPage";
 
 /* ---------- 404 ---------- */
 import NotFound from "../pages/NotFound/NotFound";
