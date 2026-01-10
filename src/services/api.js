@@ -229,16 +229,18 @@ api.interceptors.response.use(
 
         return api(originalRequest);
       } catch (refreshError) {
-        isRefreshing = false;
-        processQueue(refreshError);
+  isRefreshing = false;
+  processQueue(refreshError);
 
-        // 🔒 Hard logout (single execution)
-        localStorage.clear();
-        sessionStorage.clear();
+  localStorage.clear();
+  sessionStorage.clear();
 
-        window.location.href = "/login";
-        return Promise.reject(refreshError);
-      }
+  // 🔥 Notify React, do NOT redirect here
+  window.dispatchEvent(new Event("auth:logout"));
+
+  return Promise.reject(refreshError);
+}
+
     }
 
     return Promise.reject(error);
