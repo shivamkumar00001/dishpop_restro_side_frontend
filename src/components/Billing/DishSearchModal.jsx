@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Search, X, Plus, ChefHat, Flame, Tag } from "lucide-react";
+import { Search, X, Plus, ChefHat, Flame, Check } from "lucide-react";
 
 const FOOD_TYPE_COLORS = {
   veg: "bg-green-500",
@@ -29,6 +29,7 @@ export default function DishSearchModal({ dishes, onAddDish, onClose, loading })
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedFoodType, setSelectedFoodType] = useState("all");
+  const [recentlyAdded, setRecentlyAdded] = useState([]);
 
   // Extract unique categories
   const categories = useMemo(() => {
@@ -64,11 +65,20 @@ export default function DishSearchModal({ dishes, onAddDish, onClose, loading })
 
   const handleSelectDish = (dish, variant) => {
     onAddDish(dish, variant);
+    
+    // Add to recently added with animation
+    const key = `${dish._id}-${variant.name}`;
+    setRecentlyAdded(prev => [...prev, key]);
+    
+    // Remove from recently added after animation
+    setTimeout(() => {
+      setRecentlyAdded(prev => prev.filter(k => k !== key));
+    }, 2000);
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-900 rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden border border-gray-800 flex flex-col">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
+      <div className="bg-gray-900 rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden border border-gray-800 flex flex-col shadow-2xl animate-slideUp">
         {/* HEADER */}
         <div className="bg-gray-900 border-b border-gray-800 p-6">
           <div className="flex items-center justify-between mb-4">
@@ -78,7 +88,7 @@ export default function DishSearchModal({ dishes, onAddDish, onClose, loading })
             </h2>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-800 rounded-lg transition-all hover:scale-110"
             >
               <X className="w-6 h-6" />
             </button>
@@ -92,7 +102,7 @@ export default function DishSearchModal({ dishes, onAddDish, onClose, loading })
               placeholder="Search dishes by name or description..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-black border border-gray-800 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500"
+              className="w-full pl-10 pr-4 py-3 bg-black border border-gray-800 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 transition-colors"
               autoFocus
             />
           </div>
@@ -102,7 +112,7 @@ export default function DishSearchModal({ dishes, onAddDish, onClose, loading })
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="flex-1 px-4 py-2 bg-black border border-gray-800 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+              className="flex-1 px-4 py-2 bg-black border border-gray-800 rounded-lg text-white focus:outline-none focus:border-cyan-500 transition-colors"
             >
               {categories.map(cat => (
                 <option key={cat} value={cat}>
@@ -114,7 +124,7 @@ export default function DishSearchModal({ dishes, onAddDish, onClose, loading })
             <select
               value={selectedFoodType}
               onChange={(e) => setSelectedFoodType(e.target.value)}
-              className="flex-1 px-4 py-2 bg-black border border-gray-800 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+              className="flex-1 px-4 py-2 bg-black border border-gray-800 rounded-lg text-white focus:outline-none focus:border-cyan-500 transition-colors"
             >
               <option value="all">All Types</option>
               <option value="veg">Veg</option>
@@ -130,7 +140,7 @@ export default function DishSearchModal({ dishes, onAddDish, onClose, loading })
                   setSelectedCategory("all");
                   setSelectedFoodType("all");
                 }}
-                className="px-4 py-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-lg text-sm font-semibold transition-colors"
+                className="px-4 py-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-lg text-sm font-semibold transition-all hover:scale-105"
               >
                 Clear
               </button>
@@ -168,6 +178,7 @@ export default function DishSearchModal({ dishes, onAddDish, onClose, loading })
                   key={dish._id}
                   dish={dish}
                   onSelect={handleSelectDish}
+                  recentlyAdded={recentlyAdded}
                 />
               ))}
             </div>
@@ -178,7 +189,7 @@ export default function DishSearchModal({ dishes, onAddDish, onClose, loading })
         <div className="bg-gray-900 border-t border-gray-800 p-6">
           <button
             onClick={onClose}
-            className="w-full px-6 py-3 bg-gray-800 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors"
+            className="w-full px-6 py-3 bg-gray-800 hover:bg-gray-700 text-white font-semibold rounded-lg transition-all hover:scale-105"
           >
             Close
           </button>
@@ -189,7 +200,7 @@ export default function DishSearchModal({ dishes, onAddDish, onClose, loading })
 }
 
 // Dish Card Component
-function DishCard({ dish, onSelect }) {
+function DishCard({ dish, onSelect, recentlyAdded }) {
   const [selectedVariant, setSelectedVariant] = useState(
     dish.variants?.find(v => v.isDefault) || dish.variants?.[0]
   );
@@ -200,8 +211,14 @@ function DishCard({ dish, onSelect }) {
     }
   };
 
+  const isRecentlyAdded = recentlyAdded.includes(`${dish._id}-${selectedVariant?.name}`);
+
   return (
-    <div className="bg-black border border-gray-800 rounded-lg p-4 hover:border-cyan-500/30 transition-all group">
+    <div className={`bg-black border rounded-lg p-4 transition-all duration-300 group ${
+      isRecentlyAdded 
+        ? 'border-green-500 shadow-lg shadow-green-500/20 scale-[1.02]' 
+        : 'border-gray-800 hover:border-cyan-500/30'
+    }`}>
       <div className="flex gap-4">
         {/* IMAGE */}
         <div className="relative w-24 h-24 rounded overflow-hidden border border-gray-700 flex-shrink-0">
@@ -228,6 +245,15 @@ function DishCard({ dish, onSelect }) {
           {dish.isFeatured && (
             <div className="absolute top-2 right-2 bg-yellow-500 text-black text-xs font-bold px-1 py-0.5 rounded">
               ⭐
+            </div>
+          )}
+
+          {/* Recently Added Indicator */}
+          {isRecentlyAdded && (
+            <div className="absolute inset-0 bg-green-500/20 flex items-center justify-center animate-pulse">
+              <div className="bg-green-500 text-white rounded-full p-2">
+                <Check className="w-5 h-5" />
+              </div>
             </div>
           )}
         </div>
@@ -283,10 +309,24 @@ function DishCard({ dish, onSelect }) {
                   </div>
                   <button
                     onClick={() => onSelect(dish, dish.variants[0])}
-                    className="px-3 py-1.5 bg-cyan-500 hover:bg-cyan-600 text-black text-sm font-semibold rounded flex items-center gap-1 transition-colors"
+                    disabled={isRecentlyAdded}
+                    className={`px-3 py-1.5 text-sm font-semibold rounded flex items-center gap-1 transition-all ${
+                      isRecentlyAdded
+                        ? 'bg-green-500 text-white cursor-not-allowed'
+                        : 'bg-cyan-500 hover:bg-cyan-600 text-black hover:scale-105'
+                    }`}
                   >
-                    <Plus className="w-4 h-4" />
-                    Add
+                    {isRecentlyAdded ? (
+                      <>
+                        <Check className="w-4 h-4" />
+                        Added
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4" />
+                        Add
+                      </>
+                    )}
                   </button>
                 </div>
               ) : (
@@ -297,9 +337,9 @@ function DishCard({ dish, onSelect }) {
                       <button
                         key={idx}
                         onClick={() => setSelectedVariant(variant)}
-                        className={`px-2 py-1 text-xs rounded transition-colors ${
+                        className={`px-2 py-1 text-xs rounded transition-all ${
                           selectedVariant === variant
-                            ? "bg-cyan-500 text-black font-semibold"
+                            ? "bg-cyan-500 text-black font-semibold scale-105"
                             : "bg-gray-800 text-gray-400 hover:bg-gray-700"
                         }`}
                       >
@@ -314,10 +354,24 @@ function DishCard({ dish, onSelect }) {
                     </div>
                     <button
                       onClick={handleAdd}
-                      className="px-3 py-1.5 bg-cyan-500 hover:bg-cyan-600 text-black text-sm font-semibold rounded flex items-center gap-1 transition-colors"
+                      disabled={isRecentlyAdded}
+                      className={`px-3 py-1.5 text-sm font-semibold rounded flex items-center gap-1 transition-all ${
+                        isRecentlyAdded
+                          ? 'bg-green-500 text-white cursor-not-allowed'
+                          : 'bg-cyan-500 hover:bg-cyan-600 text-black hover:scale-105'
+                      }`}
                     >
-                      <Plus className="w-4 h-4" />
-                      Add
+                      {isRecentlyAdded ? (
+                        <>
+                          <Check className="w-4 h-4" />
+                          Added
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-4 h-4" />
+                          Add
+                        </>
+                      )}
                     </button>
                   </div>
                 </>

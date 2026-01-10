@@ -7,9 +7,9 @@ import {
   MapPin,
   User,
   Phone,
-  DollarSign,
   ChevronDown,
   ChevronUp,
+  Printer,
 } from "lucide-react";
 
 const STATUS_STYLES = {
@@ -25,7 +25,7 @@ const PAYMENT_STYLES = {
   CANCELLED: "text-red-400",
 };
 
-function BillCard({ bill, onView, onFinalize, onDelete }) {
+function BillCard({ bill, onView, onFinalize, onDelete, onPrint }) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const discountAmount =
@@ -36,7 +36,7 @@ function BillCard({ bill, onView, onFinalize, onDelete }) {
       : 0;
 
   return (
-    <div className="bg-gray-900/50 backdrop-blur-sm border border-gray-800 rounded-xl hover:border-cyan-500/30 transition-all duration-200 hover:shadow-lg hover:shadow-cyan-500/5">
+    <div className="bg-gray-900/50 backdrop-blur-sm border border-gray-800 rounded-xl hover:border-cyan-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/5 hover:scale-[1.02] animate-slideIn">
       {/* Compact Header - Always Visible */}
       <div 
         className="p-4 cursor-pointer"
@@ -81,16 +81,16 @@ function BillCard({ bill, onView, onFinalize, onDelete }) {
 
         <div className="flex items-center justify-center text-gray-500 text-xs">
           {isExpanded ? (
-            <ChevronUp className="w-4 h-4" />
+            <ChevronUp className="w-4 h-4 transition-transform" />
           ) : (
-            <ChevronDown className="w-4 h-4" />
+            <ChevronDown className="w-4 h-4 transition-transform" />
           )}
         </div>
       </div>
 
       {/* Expanded Details */}
       {isExpanded && (
-        <div className="px-4 pb-4 border-t border-gray-800">
+        <div className="px-4 pb-4 border-t border-gray-800 animate-slideDown">
           {/* Customer Info */}
           <div className="py-3 space-y-1.5 text-sm">
             <div className="flex items-center gap-2">
@@ -135,7 +135,7 @@ function BillCard({ bill, onView, onFinalize, onDelete }) {
 
           {/* Payment Info (Finalized) */}
           {bill.status === "FINALIZED" && (
-            <div className="my-3 p-2 bg-green-500/5 rounded border border-green-500/20">
+            <div className="my-3 p-2 bg-green-500/5 rounded border border-green-500/20 animate-slideIn">
               <div className="flex justify-between items-center text-xs">
                 <span className="text-gray-400">Payment</span>
                 <span className={`font-semibold ${PAYMENT_STYLES[bill.paymentStatus]}`}>
@@ -155,7 +155,7 @@ function BillCard({ bill, onView, onFinalize, onDelete }) {
                 e.stopPropagation();
                 onView(bill._id);
               }}
-              className="flex-1 bg-cyan-500 hover:bg-cyan-600 text-black font-semibold py-2 rounded-lg transition-colors flex items-center justify-center gap-1.5 text-sm"
+              className="flex-1 bg-cyan-500 hover:bg-cyan-600 text-black font-semibold py-2 rounded-lg transition-all hover:scale-105 flex items-center justify-center gap-1.5 text-sm shadow-md shadow-cyan-500/20"
             >
               <Eye className="w-4 h-4" />
               View
@@ -168,7 +168,7 @@ function BillCard({ bill, onView, onFinalize, onDelete }) {
                     e.stopPropagation();
                     onFinalize(bill._id);
                   }}
-                  className="flex-1 bg-green-500 hover:bg-green-600 text-black font-semibold py-2 rounded-lg transition-colors flex items-center justify-center gap-1.5 text-sm"
+                  className="flex-1 bg-green-500 hover:bg-green-600 text-black font-semibold py-2 rounded-lg transition-all hover:scale-105 flex items-center justify-center gap-1.5 text-sm shadow-md shadow-green-500/20"
                 >
                   <CheckCircle className="w-4 h-4" />
                   Pay
@@ -178,18 +178,31 @@ function BillCard({ bill, onView, onFinalize, onDelete }) {
                     e.stopPropagation();
                     onDelete(bill._id);
                   }}
-                  className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-colors"
+                  className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-all hover:scale-110"
                   title="Cancel"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
               </>
             )}
+
+            {bill.status === "FINALIZED" && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onPrint(bill);
+                }}
+                className="p-2 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 rounded-lg transition-all hover:scale-110"
+                title="Print Bill"
+              >
+                <Printer className="w-4 h-4" />
+              </button>
+            )}
           </div>
 
           {/* Notes */}
           {bill.notes && (
-            <div className="mt-2 p-2 bg-blue-500/5 border border-blue-500/10 rounded text-xs text-gray-400">
+            <div className="mt-2 p-2 bg-blue-500/5 border border-blue-500/10 rounded text-xs text-gray-400 animate-slideIn">
               {bill.notes}
             </div>
           )}
