@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DishPop Billing - Offline</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+      background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+      color: #ffffff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      text-align: center;
+      max-width: 500px;
+    }
+
+    .icon {
+      width: 120px;
+      height: 120px;
+      margin: 0 auto 30px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+      50% {
+        transform: scale(1.05);
+        opacity: 0.8;
+      }
+    }
+
+    .icon svg {
+      width: 60px;
+      height: 60px;
+      stroke: white;
+      stroke-width: 2;
+      fill: none;
+    }
+
+    h1 {
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    p {
+      font-size: 18px;
+      color: #a0aec0;
+      margin-bottom: 30px;
+      line-height: 1.6;
+    }
+
+    .status {
+      padding: 16px 24px;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 12px;
+      margin-bottom: 30px;
+    }
+
+    .status-text {
+      color: #f87171;
+      font-weight: 600;
+      font-size: 16px;
+    }
+
+    .features {
+      background: rgba(6, 182, 212, 0.05);
+      border: 1px solid rgba(6, 182, 212, 0.2);
+      border-radius: 12px;
+      padding: 24px;
+      text-align: left;
+      margin-bottom: 30px;
+    }
+
+    .features h2 {
+      font-size: 20px;
+      margin-bottom: 16px;
+      color: #06b6d4;
+    }
+
+    .feature-list {
+      list-style: none;
+    }
+
+    .feature-list li {
+      padding: 8px 0;
+      padding-left: 30px;
+      position: relative;
+      color: #cbd5e0;
+    }
+
+    .feature-list li::before {
+      content: "✓";
+      position: absolute;
+      left: 0;
+      color: #06b6d4;
+      font-weight: bold;
+      font-size: 18px;
+    }
+
+    .button {
+      display: inline-block;
+      padding: 14px 32px;
+      background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 16px;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 4px 14px rgba(6, 182, 212, 0.3);
+    }
+
+    .button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(6, 182, 212, 0.4);
+    }
+
+    .retry-info {
+      margin-top: 20px;
+      padding: 12px;
+      background: rgba(59, 130, 246, 0.1);
+      border-radius: 8px;
+      font-size: 14px;
+      color: #93c5fd;
+    }
+
+    @media (max-width: 640px) {
+      h1 {
+        font-size: 24px;
+      }
+
+      p {
+        font-size: 16px;
+      }
+
+      .icon {
+        width: 100px;
+        height: 100px;
+      }
+
+      .icon svg {
+        width: 50px;
+        height: 50px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M1 8h11v4a4 4 0 0 1-4 4H1z"></path>
+        <path d="M1 8v13h11"></path>
+        <path d="M16 8l2-2 6 6-8 4z"></path>
+      </svg>
+    </div>
+
+    <h1>You're Offline</h1>
+    <p>Don't worry! DishPop Billing works offline. Your data is safe and will sync when you're back online.</p>
+
+    <div class="status">
+      <p class="status-text">⚠️ No internet connection detected</p>
+    </div>
+
+    <div class="features">
+      <h2>What Still Works Offline:</h2>
+      <ul class="feature-list">
+        <li>Create new bills</li>
+        <li>View existing bills</li>
+        <li>Print bills (thermal & regular)</li>
+        <li>Search menu items</li>
+        <li>Update bill details</li>
+        <li>Access all cached data</li>
+      </ul>
+    </div>
+
+    <a href="/" class="button" onclick="location.reload(); return false;">Retry Connection</a>
+
+    <div class="retry-info">
+      💡 The app will automatically sync your changes when connection is restored
+    </div>
+
+    <script>
+      // Auto-retry when online
+      window.addEventListener('online', function() {
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      });
+
+      // Check connection periodically
+      setInterval(() => {
+        if (navigator.onLine) {
+          window.location.reload();
+        }
+      }, 5000);
+    </script>
+  </div>
+</body>
+</html>

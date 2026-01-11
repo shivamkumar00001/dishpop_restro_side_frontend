@@ -1,216 +1,531 @@
+/**
+ * Billing API Service with Offline Support
+ * Wraps existing billingApi.js with offline capabilities
+ * Maintains compatibility with existing API structure
+ */
+
 import axios from "axios";
 import API_BASE_URL from "../config/api";
+import offlineDB from '../services/offlineDB';
 
-const API_URL = API_BASE_URL || "http://localhost:5001/api/v1";
+const API_URL = API_BASE_URL || import.meta.env.VITE_API_URL || "http://localhost:5001/api/v1";
 
-const getAuthToken = () => localStorage.getItem("token");
+class BillingAPI {
+  constructor() {
+    this.isOnline = navigator.onLine;
+    
+    // Listen for online/offline events
+    window.addEventListener('online', () => {
+      this.isOnline = true;
+      console.log('🌐 Connection restored');
+    });
 
-const createAuthAxios = () => {
-  const token = getAuthToken();
-  return axios.create({
-    baseURL: API_URL,
-    headers: {
-      Authorization: token ? `Bearer ${token}` : "",
-    },
-    withCredentials: true,
-  });
-};
-
-export const fetchAllBills = async (username, filters = {}) => {
-  try {
-    const axiosInstance = createAuthAxios();
-    const params = new URLSearchParams();
-
-    if (filters.status) params.append("status", filters.status);
-    if (filters.tableNumber) params.append("tableNumber", filters.tableNumber);
-    if (filters.phoneNumber) params.append("phoneNumber", filters.phoneNumber);
-    if (filters.paymentStatus) params.append("paymentStatus", filters.paymentStatus);
-    if (filters.startDate) params.append("startDate", filters.startDate);
-    if (filters.endDate) params.append("endDate", filters.endDate);
-    if (filters.limit) params.append("limit", filters.limit);
-    if (filters.page) params.append("page", filters.page);
-
-    const queryString = params.toString();
-    const url = `/restaurants/${username}/bills${queryString ? `?${queryString}` : ""}`;
-
-    const response = await axiosInstance.get(url);
-    return response.data;
-  } catch (error) {
-    console.error("Error fetching bills:", error);
-    throw error;
+    window.addEventListener('offline', () => {
+      this.isOnline = false;
+      console.log('📴 Connection lost');
+    });
   }
-};
 
-export const fetchBillById = async (username, billId) => {
-  try {
-    const axiosInstance = createAuthAxios();
-    const response = await axiosInstance.get(`/restaurants/${username}/bills/${billId}`);
-    return response.data;
-  } catch (error) {
-    console.error("Error fetching bill:", error);
-    throw error;
+  /**
+   * Get auth token
+   */
+  getAuthToken() {
+    return localStorage.getItem("token");
   }
-};
 
-export const createBillFromOrders = async (username, data) => {
-  try {
-    const axiosInstance = createAuthAxios();
-    const response = await axiosInstance.post(
-      `/restaurants/${username}/bills/create-from-orders`,
-      data
-    );
-    return response.data;
-  } catch (error) {
-    console.error("Error creating bill from orders:", error);
-    throw error;
+  /**
+   * Create axios instance with auth
+   */
+  createAuthAxios() {
+    const token = this.getAuthToken();
+    return axios.create({
+      baseURL: API_URL,
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+      },
+      withCredentials: true,
+    });
   }
-};
 
-export const createBillFromSelectedItems = async (username, data) => {
-  try {
-    const axiosInstance = createAuthAxios();
-    const response = await axiosInstance.post(
-      `/restaurants/${username}/bills/create-from-selected-items`,
-      data
-    );
-    return response.data;
-  } catch (error) {
-    console.error("Error creating bill from selected items:", error);
-    throw error;
-  }
-};
+  /**
+   * Fetch all bills with offline support
+   */
+  async fetchAllBills(username, filters = {}) {
+    try {
+      if (!this.isOnline) {
+        console.log('📴 Offline - fetching from IndexedDB');
+        const bills = await offlineDB.getAllBills(filters);
+        return { success: true, data: bills, offline: true };
+      }
 
-export const createBillManually = async (username, billData) => {
-  try {
-    const axiosInstance = createAuthAxios();
-    const response = await axiosInstance.post(
-      `/restaurants/${username}/bills/create`,
-      billData
-    );
-    return response.data;
-  } catch (error) {
-    console.error("Error creating bill manually:", error);
-    throw error;
-  }
-};
+      // Try API first
+      const axiosInstance = this.createAuthAxios();
+      const params = new URLSearchParams();
 
-export const updateBillItems = async (username, billId, items) => {
-  try {
-    const axiosInstance = createAuthAxios();
-    const response = await axiosInstance.patch(
-      `/restaurants/${username}/bills/${billId}/items`,
-      { items }
-    );
-    return response.data;
-  } catch (error) {
-    console.error("Error updating bill items:", error);
-    throw error;
-  }
-};
+      if (filters.status) params.append("status", filters.status);
+      if (filters.tableNumber) params.append("tableNumber", filters.tableNumber);
+      if (filters.phoneNumber) params.append("phoneNumber", filters.phoneNumber);
+      if (filters.paymentStatus) params.append("paymentStatus", filters.paymentStatus);
+      if (filters.startDate) params.append("startDate", filters.startDate);
+      if (filters.endDate) params.append("endDate", filters.endDate);
+      if (filters.limit) params.append("limit", filters.limit);
+      if (filters.page) params.append("page", filters.page);
 
-export const updateBillCharges = async (username, billId, chargesData) => {
-  try {
-    const axiosInstance = createAuthAxios();
-    const response = await axiosInstance.patch(
-      `/restaurants/${username}/bills/${billId}/charges`,
-      chargesData
-    );
-    return response.data;
-  } catch (error) {
-    console.error("Error updating bill charges:", error);
-    throw error;
-  }
-};
+      const queryString = params.toString();
+      const url = `/restaurants/${username}/bills${queryString ? `?${queryString}` : ""}`;
 
-export const mergeBills = async (username, data) => {
-  try {
-    const axiosInstance = createAuthAxios();
-    const response = await axiosInstance.post(
-      `/restaurants/${username}/bills/merge`,
-      data
-    );
-    return response.data;
-  } catch (error) {
-    console.error("Error merging bills:", error);
-    throw error;
-  }
-};
+      const response = await axiosInstance.get(url);
+      
+      // Cache bills for offline use
+      if (response.data.success && Array.isArray(response.data.data)) {
+        console.log(`💾 Caching ${response.data.data.length} bills for offline use`);
+        for (const bill of response.data.data) {
+          await offlineDB.saveBill(bill);
+        }
+      }
 
-export const finalizeBill = async (username, billId, paymentData) => {
-  try {
-    const axiosInstance = createAuthAxios();
-    const response = await axiosInstance.post(
-      `/restaurants/${username}/bills/${billId}/finalize`,
-      paymentData
-    );
-    return response.data;
-  } catch (error) {
-    console.error("Error finalizing bill:", error);
-    throw error;
+      return response.data;
+    } catch (error) {
+      console.error('API call failed, using cached data:', error);
+      const bills = await offlineDB.getAllBills(filters);
+      return { success: true, data: bills, offline: true };
+    }
   }
-};
 
-export const deleteBill = async (username, billId, reason) => {
-  try {
-    const axiosInstance = createAuthAxios();
-    const response = await axiosInstance.delete(
-      `/restaurants/${username}/bills/${billId}`,
-      { data: { reason } }
-    );
-    return response.data;
-  } catch (error) {
-    console.error("Error deleting bill:", error);
-    throw error;
-  }
-};
+  /**
+   * Fetch bill by ID with offline support
+   */
+  async fetchBillById(username, billId) {
+    try {
+      if (!this.isOnline) {
+        const bill = await offlineDB.getBillById(billId);
+        return { success: true, data: bill, offline: true };
+      }
 
-export const fetchBillsByTable = async (username, tableNumber, status) => {
-  try {
-    const axiosInstance = createAuthAxios();
-    const url = `/restaurants/${username}/bills/table/${tableNumber}${
-      status ? `?status=${status}` : ""
-    }`;
-    const response = await axiosInstance.get(url);
-    return response.data;
-  } catch (error) {
-    console.error("Error fetching bills by table:", error);
-    throw error;
-  }
-};
+      const axiosInstance = this.createAuthAxios();
+      const response = await axiosInstance.get(`/restaurants/${username}/bills/${billId}`);
+      
+      if (response.data.success && response.data.data) {
+        await offlineDB.saveBill(response.data.data);
+      }
 
-export const fetchBillingStats = async (username, period = "today") => {
-  try {
-    const axiosInstance = createAuthAxios();
-    const response = await axiosInstance.get(
-      `/restaurants/${username}/bills/stats?period=${period}`
-    );
-    return response.data;
-  } catch (error) {
-    console.error("Error fetching billing stats:", error);
-    throw error;
+      return response.data;
+    } catch (error) {
+      console.error('API call failed, using cached data:', error);
+      const bill = await offlineDB.getBillById(billId);
+      return { success: true, data: bill, offline: true };
+    }
   }
-};
 
-export const fetchActiveSessions = async (username) => {
-  try {
-    const axiosInstance = createAuthAxios();
-    const response = await axiosInstance.get(`/restaurants/${username}/sessions`);
-    return response.data;
-  } catch (error) {
-    console.error("Error fetching active sessions:", error);
-    throw error;
-  }
-};
+  /**
+   * Create bill from orders
+   */
+  async createBillFromOrders(username, data) {
+    try {
+      const axiosInstance = this.createAuthAxios();
+      const response = await axiosInstance.post(
+        `/restaurants/${username}/bills/create-from-orders`,
+        data
+      );
+      
+      if (response.data.success && response.data.data) {
+        await offlineDB.saveBill(response.data.data);
+      }
 
-export const fetchSessionDetails = async (username, sessionId) => {
-  try {
-    const axiosInstance = createAuthAxios();
-    const response = await axiosInstance.get(
-      `/restaurants/${username}/sessions/${sessionId}`
-    );
-    return response.data;
-  } catch (error) {
-    console.error("Error fetching session details:", error);
-    throw error;
+      return response.data;
+    } catch (error) {
+      console.error("Error creating bill from orders:", error);
+      throw error;
+    }
   }
-};
+
+  /**
+   * Create bill from selected items
+   */
+  async createBillFromSelectedItems(username, data) {
+    try {
+      const axiosInstance = this.createAuthAxios();
+      const response = await axiosInstance.post(
+        `/restaurants/${username}/bills/create-from-selected-items`,
+        data
+      );
+      
+      if (response.data.success && response.data.data) {
+        await offlineDB.saveBill(response.data.data);
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error("Error creating bill from selected items:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create bill manually with offline support
+   */
+  async createBillManually(username, billData) {
+    try {
+      console.log('💾 Creating bill:', billData.tableNumber);
+      
+      // Always save to IndexedDB first
+      const offlineBill = await offlineDB.saveBill({
+        ...billData,
+        username,
+        status: 'DRAFT',
+        createdAt: new Date().toISOString(),
+      });
+
+      if (!this.isOnline) {
+        console.log('📴 Offline - bill saved locally');
+        return { success: true, data: offlineBill, offline: true };
+      }
+
+      // Try to sync immediately if online
+      console.log('📡 Syncing bill to server...');
+      const axiosInstance = this.createAuthAxios();
+      const response = await axiosInstance.post(
+        `/restaurants/${username}/bills/create`,
+        billData
+      );
+
+      if (response.data.success) {
+        // Update with server data
+        console.log('✅ Bill synced to server:', response.data.data.billNumber);
+        await offlineDB.saveBill({
+          ...response.data.data,
+          syncStatus: 'synced',
+        });
+        return response.data;
+      }
+
+      return { success: true, data: offlineBill, offline: true };
+    } catch (error) {
+      console.error('API call failed, saved offline:', error);
+      const offlineBill = await offlineDB.saveBill({
+        ...billData,
+        username,
+        status: 'DRAFT',
+        createdAt: new Date().toISOString(),
+      });
+      return { success: true, data: offlineBill, offline: true };
+    }
+  }
+
+  /**
+   * Update bill items
+   */
+  async updateBillItems(username, billId, items) {
+    try {
+      // Update locally first
+      await offlineDB.updateBill(billId, { items });
+
+      if (!this.isOnline) {
+        return { success: true, offline: true };
+      }
+
+      const axiosInstance = this.createAuthAxios();
+      const response = await axiosInstance.patch(
+        `/restaurants/${username}/bills/${billId}/items`,
+        { items }
+      );
+
+      if (response.data.success && response.data.data) {
+        await offlineDB.saveBill({
+          ...response.data.data,
+          syncStatus: 'synced',
+        });
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error("Error updating bill items:", error);
+      return { success: true, offline: true };
+    }
+  }
+
+  /**
+   * Update bill charges
+   */
+  async updateBillCharges(username, billId, chargesData) {
+    try {
+      // Update locally first
+      await offlineDB.updateBill(billId, chargesData);
+
+      if (!this.isOnline) {
+        return { success: true, offline: true };
+      }
+
+      const axiosInstance = this.createAuthAxios();
+      const response = await axiosInstance.patch(
+        `/restaurants/${username}/bills/${billId}/charges`,
+        chargesData
+      );
+
+      if (response.data.success && response.data.data) {
+        await offlineDB.saveBill({
+          ...response.data.data,
+          syncStatus: 'synced',
+        });
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error("Error updating bill charges:", error);
+      return { success: true, offline: true };
+    }
+  }
+
+  /**
+   * Merge bills
+   */
+  async mergeBills(username, data) {
+    try {
+      if (!this.isOnline) {
+        return { 
+          success: false, 
+          message: 'Cannot merge bills offline. Please try when online.',
+          offline: true 
+        };
+      }
+
+      const axiosInstance = this.createAuthAxios();
+      const response = await axiosInstance.post(
+        `/restaurants/${username}/bills/merge`,
+        data
+      );
+
+      if (response.data.success && response.data.data) {
+        // Save merged bill and mark old ones as cancelled
+        await offlineDB.saveBill({
+          ...response.data.data,
+          syncStatus: 'synced',
+        });
+        
+        for (const billId of data.billIds) {
+          await offlineDB.deleteBill(billId, 'Merged into new bill');
+        }
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error("Error merging bills:", error);
+      return { 
+        success: false, 
+        message: 'Merge failed. Please try again.',
+        error: error.message 
+      };
+    }
+  }
+
+  /**
+   * Finalize bill with offline support
+   */
+  async finalizeBill(username, billId, paymentData) {
+    try {
+      // Update locally first
+      await offlineDB.updateBill(billId, {
+        status: 'FINALIZED',
+        ...paymentData,
+        finalizedAt: new Date().toISOString(),
+      });
+
+      if (!this.isOnline) {
+        return { success: true, offline: true };
+      }
+
+      const axiosInstance = this.createAuthAxios();
+      const response = await axiosInstance.post(
+        `/restaurants/${username}/bills/${billId}/finalize`,
+        paymentData
+      );
+
+      if (response.data.success && response.data.data) {
+        await offlineDB.saveBill({
+          ...response.data.data,
+          syncStatus: 'synced',
+        });
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error("Error finalizing bill:", error);
+      return { success: true, offline: true };
+    }
+  }
+
+  /**
+   * Delete bill with offline support
+   */
+  async deleteBill(username, billId, reason) {
+    try {
+      await offlineDB.deleteBill(billId, reason);
+
+      if (!this.isOnline) {
+        return { success: true, offline: true };
+      }
+
+      const axiosInstance = this.createAuthAxios();
+      const response = await axiosInstance.delete(
+        `/restaurants/${username}/bills/${billId}`,
+        { data: { reason } }
+      );
+
+      return response.data;
+    } catch (error) {
+      console.error("Error deleting bill:", error);
+      return { success: true, offline: true };
+    }
+  }
+
+  /**
+   * Fetch bills by table
+   */
+  async fetchBillsByTable(username, tableNumber, status) {
+    try {
+      if (!this.isOnline) {
+        const bills = await offlineDB.getAllBills({ tableNumber, status });
+        return { success: true, data: bills, offline: true };
+      }
+
+      const axiosInstance = this.createAuthAxios();
+      const url = `/restaurants/${username}/bills/table/${tableNumber}${
+        status ? `?status=${status}` : ""
+      }`;
+      const response = await axiosInstance.get(url);
+
+      if (response.data.success && Array.isArray(response.data.data)) {
+        for (const bill of response.data.data) {
+          await offlineDB.saveBill(bill);
+        }
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching bills by table:", error);
+      const bills = await offlineDB.getAllBills({ tableNumber, status });
+      return { success: true, data: bills, offline: true };
+    }
+  }
+
+  /**
+   * Fetch billing stats with offline support
+   */
+  async fetchBillingStats(username, period = "today") {
+    try {
+      if (!this.isOnline) {
+        const stats = await offlineDB.calculateStats(period);
+        return { success: true, data: stats, offline: true };
+      }
+
+      const axiosInstance = this.createAuthAxios();
+      const response = await axiosInstance.get(
+        `/restaurants/${username}/bills/stats?period=${period}`
+      );
+
+      // Cache stats
+      if (response.data.success) {
+        await offlineDB.db.put('statsCache', {
+          key: `stats_${period}`,
+          value: response.data.data,
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching billing stats:", error);
+      const stats = await offlineDB.calculateStats(period);
+      return { success: true, data: stats, offline: true };
+    }
+  }
+
+  /**
+   * Fetch active sessions
+   */
+  async fetchActiveSessions(username) {
+    try {
+      const axiosInstance = this.createAuthAxios();
+      const response = await axiosInstance.get(`/restaurants/${username}/sessions`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching active sessions:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch session details
+   */
+  async fetchSessionDetails(username, sessionId) {
+    try {
+      const axiosInstance = this.createAuthAxios();
+      const response = await axiosInstance.get(
+        `/restaurants/${username}/sessions/${sessionId}`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching session details:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch menu and cache for offline use
+   */
+  async fetchAndCacheMenu(username) {
+    try {
+      console.log('📡 Fetching menu for offline caching...');
+      
+      const axiosInstance = this.createAuthAxios();
+      const response = await axiosInstance.get(`/restaurants/${username}/menu`);
+
+      if (response.data.success && response.data.data?.menu) {
+        // Flatten dishes from all categories
+        const allDishes = response.data.data.menu.flatMap(cat => cat.dishes || []);
+        await offlineDB.saveDishes(allDishes);
+        console.log(`✅ Cached ${allDishes.length} dishes for offline use`);
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error('Failed to cache menu:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Get cached dishes for offline use
+   */
+  async getCachedDishes() {
+    try {
+      const dishes = await offlineDB.getAvailableDishes();
+      return { success: true, data: dishes, offline: true };
+    } catch (error) {
+      console.error('Failed to get cached dishes:', error);
+      return { success: false, data: [], error: error.message };
+    }
+  }
+}
+
+// Singleton instance
+const billingAPI = new BillingAPI();
+
+// Export all methods to maintain compatibility with existing code
+export const fetchAllBills = (username, filters) => billingAPI.fetchAllBills(username, filters);
+export const fetchBillById = (username, billId) => billingAPI.fetchBillById(username, billId);
+export const createBillFromOrders = (username, data) => billingAPI.createBillFromOrders(username, data);
+export const createBillFromSelectedItems = (username, data) => billingAPI.createBillFromSelectedItems(username, data);
+export const createBillManually = (username, billData) => billingAPI.createBillManually(username, billData);
+export const updateBillItems = (username, billId, items) => billingAPI.updateBillItems(username, billId, items);
+export const updateBillCharges = (username, billId, chargesData) => billingAPI.updateBillCharges(username, billId, chargesData);
+export const mergeBills = (username, data) => billingAPI.mergeBills(username, data);
+export const finalizeBill = (username, billId, paymentData) => billingAPI.finalizeBill(username, billId, paymentData);
+export const deleteBill = (username, billId, reason) => billingAPI.deleteBill(username, billId, reason);
+export const fetchBillsByTable = (username, tableNumber, status) => billingAPI.fetchBillsByTable(username, tableNumber, status);
+export const fetchBillingStats = (username, period) => billingAPI.fetchBillingStats(username, period);
+export const fetchActiveSessions = (username) => billingAPI.fetchActiveSessions(username);
+export const fetchSessionDetails = (username, sessionId) => billingAPI.fetchSessionDetails(username, sessionId);
+
+// Export default for convenience
+export default billingAPI;

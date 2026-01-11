@@ -20,17 +20,20 @@ import {
   Printer,
   User,
   Tag,
+  Settings,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
-import {
-  fetchAllBills,
-  fetchBillingStats,
-  createBillManually,
-  finalizeBill,
-  deleteBill,
-  mergeBills,
-} from "../../api/billingApi";
+
+// ✅ Import offline-capable API wrapper
+import billingAPI from "../../api/billingApi";
 import menuApi from "../../api/menuApi";
+
+// ✅ Import new offline components
+import OfflineIndicator from "../../components/Billing/OfflineIndicator";
+import SyncStatus from "../../components/Billing/SyncStatus";
+import PrinterSettings from "../../components/Billing/PrinterSettings";
+
+// Import existing components
 import BillCard from "../../components/Billing/BillCard";
 import DishSearchModal from "../../components/Billing/DishSearchModal";
 import Toast from "../../components/Billing/Toast";
@@ -77,6 +80,7 @@ export default function BillingPage() {
   const [showDishSearch, setShowDishSearch] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showMergeModal, setShowMergeModal] = useState(false);
+  const [showPrinterSettings, setShowPrinterSettings] = useState(false); // ✅ NEW
   const [selectedBill, setSelectedBill] = useState(null);
   const [selectedBillsForMerge, setSelectedBillsForMerge] = useState([]);
 
@@ -93,23 +97,36 @@ export default function BillingPage() {
     setTimeout(() => setToast(null), 3000);
   }, []);
 
-  // Load data
+  // ✅ Load menu with offline caching
   const loadMenu = useCallback(async () => {
     if (!usernameToFetch) return;
     try {
       setMenuLoading(true);
+      
+      // Try to fetch and cache menu for offline use
+      await billingAPI.fetchAndCacheMenu(usernameToFetch);
+      
+      // Get dishes (from cache if offline)
       const res = await menuApi.getMenu(usernameToFetch);
       const menuData = res.data?.data?.menu || res.data?.menu || [];
       const allDishes = menuData.flatMap((cat) => cat.dishes || []);
       setDishes(allDishes);
     } catch (error) {
       console.error("Menu load failed:", error);
-      setDishes([]);
+      // Try to get cached dishes if online fetch failed
+      const cachedResult = await billingAPI.getCachedDishes();
+      if (cachedResult.success) {
+        setDishes(cachedResult.data);
+        showToast("Using cached menu (offline mode)", "info");
+      } else {
+        setDishes([]);
+      }
     } finally {
       setMenuLoading(false);
     }
-  }, [usernameToFetch]);
+  }, [usernameToFetch, showToast]);
 
+  // ✅ Load bills with offline support
   const loadBills = useCallback(async () => {
     if (!usernameToFetch) return;
     try {
@@ -130,20 +147,27 @@ export default function BillingPage() {
         }
       }
 
+      // ✅ Use offline-capable API
       const [billsRes, statsRes] = await Promise.all([
-        fetchAllBills(usernameToFetch, filters),
-        fetchBillingStats(usernameToFetch, dateFilter === "all" ? "all" : dateFilter),
+        billingAPI.fetchAllBills(usernameToFetch, filters),
+        billingAPI.fetchBillingStats(usernameToFetch, dateFilter === "all" ? "all" : dateFilter),
       ]);
 
       setBills(Array.isArray(billsRes.data) ? billsRes.data : []);
       setStats(statsRes.data || {});
+
+      // Show offline indicator if applicable
+      if (billsRes.offline || statsRes.offline) {
+        showToast("Showing cached data (offline mode)", "info");
+      }
     } catch (error) {
       console.error("Bills load failed:", error);
       setBills([]);
+      showToast("Failed to load bills", "error");
     } finally {
       setLoading(false);
     }
-  }, [usernameToFetch, statusFilter, paymentFilter, dateFilter]);
+  }, [usernameToFetch, statusFilter, paymentFilter, dateFilter, showToast]);
 
   useEffect(() => {
     loadBills();
@@ -258,7 +282,7 @@ export default function BillingPage() {
     };
   }, [createForm.items, createForm.discount, createForm.discountType, createForm.serviceCharge, createForm.taxes]);
 
-  // Actions
+  // ✅ Actions with offline support
   const handleCreateBill = async () => {
     if (!createForm.tableNumber || !createForm.customerName || !createForm.phoneNumber) {
       showToast("Please fill all required fields", "error");
@@ -270,8 +294,15 @@ export default function BillingPage() {
     }
 
     try {
-      await createBillManually(usernameToFetch, createForm);
-      showToast("Bill created successfully!", "success");
+      // ✅ Use offline-capable API
+      const response = await billingAPI.createBillManually(usernameToFetch, createForm);
+      
+      if (response.offline) {
+        showToast("Bill saved offline - will sync when online", "success");
+      } else {
+        showToast("Bill created successfully!", "success");
+      }
+      
       setShowCreateModal(false);
       setCreateForm(INITIAL_FORM);
       loadBills();
@@ -295,11 +326,18 @@ export default function BillingPage() {
     if (!paidAmount) return;
 
     try {
-      await finalizeBill(usernameToFetch, billId, {
+      // ✅ Use offline-capable API
+      const response = await billingAPI.finalizeBill(usernameToFetch, billId, {
         paymentMethod: paymentMethod.toUpperCase(),
         paidAmount: parseFloat(paidAmount),
       });
-      showToast("Bill finalized successfully!", "success");
+
+      if (response.offline) {
+        showToast("Bill finalized offline - will sync when online", "success");
+      } else {
+        showToast("Bill finalized successfully!", "success");
+      }
+      
       loadBills();
     } catch (error) {
       console.error("Finalize failed:", error);
@@ -312,8 +350,15 @@ export default function BillingPage() {
     const reason = prompt("Reason:", "Cancelled by user");
 
     try {
-      await deleteBill(usernameToFetch, billId, reason);
-      showToast("Bill cancelled successfully", "success");
+      // ✅ Use offline-capable API
+      const response = await billingAPI.deleteBill(usernameToFetch, billId, reason);
+      
+      if (response.offline) {
+        showToast("Bill cancelled offline - will sync when online", "success");
+      } else {
+        showToast("Bill cancelled successfully", "success");
+      }
+      
       loadBills();
     } catch (error) {
       console.error("Delete failed:", error);
@@ -336,16 +381,22 @@ export default function BillingPage() {
     );
 
     try {
-      await mergeBills(usernameToFetch, {
+      // ✅ Use offline-capable API
+      const response = await billingAPI.mergeBills(usernameToFetch, {
         billIds: selectedBillsForMerge,
         customerName: highestBill.customerName,
         phoneNumber: highestBill.phoneNumber,
         tableNumber: highestBill.tableNumber,
       });
-      showToast("Bills merged successfully!", "success");
-      setShowMergeModal(false);
-      setSelectedBillsForMerge([]);
-      loadBills();
+
+      if (response.success) {
+        showToast("Bills merged successfully!", "success");
+        setShowMergeModal(false);
+        setSelectedBillsForMerge([]);
+        loadBills();
+      } else {
+        showToast(response.message || "Cannot merge bills offline", "error");
+      }
     } catch (error) {
       console.error("Merge failed:", error);
       showToast("Failed to merge bills", "error");
@@ -353,11 +404,27 @@ export default function BillingPage() {
   };
 
   const handlePrint = (bill) => {
-    setPrintBill(bill);
+  console.log('🖨️ Starting print for:', bill.billNumber);
+  
+  // Set the bill to print
+  setPrintBill(bill);
+  
+  // CRITICAL: Wait for React to render AND browser to paint
+  setTimeout(() => {
+    console.log('📄 Triggering print dialog...');
+    
+    // Trigger print
+    window.print();
+    
+    // Clean up after print dialog closes
     setTimeout(() => {
-      window.print();
-    }, 100);
-  };
+      console.log('✅ Cleaning up print state');
+      setPrintBill(null);
+    }, 1000);
+    
+  }, 500); // 500ms ensures DOM is ready
+};
+
 
   if (loading) {
     return (
@@ -408,6 +475,14 @@ export default function BillingPage() {
               >
                 <Merge className="w-4 h-4" />
                 Merge
+              </button>
+              {/* ✅ NEW: Printer Settings Button */}
+              <button
+                onClick={() => setShowPrinterSettings(true)}
+                className="p-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition-all hover:scale-105"
+                title="Printer Settings"
+              >
+                <Settings className="w-5 h-5" />
               </button>
               <button
                 onClick={loadBills}
@@ -618,6 +693,11 @@ export default function BillingPage() {
         />
       )}
 
+      {/* ✅ NEW: Printer Settings Modal */}
+      {showPrinterSettings && (
+        <PrinterSettings onClose={() => setShowPrinterSettings(false)} />
+      )}
+
       {/* Toast Notifications */}
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
@@ -625,11 +705,15 @@ export default function BillingPage() {
       {printBill && (
         <PrintBill bill={printBill} restaurantName={owner?.restaurantName} />
       )}
+
+      {/* ✅ NEW: Offline & Sync Indicators */}
+      <OfflineIndicator />
+      <SyncStatus />
     </div>
   );
 }
 
-// Sub-components
+// Sub-components (exactly as in original)
 function StatCard({ icon: Icon, label, value, valueClass = "text-white" }) {
   return (
     <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-800 hover:border-cyan-500/30 transition-all hover:scale-105">

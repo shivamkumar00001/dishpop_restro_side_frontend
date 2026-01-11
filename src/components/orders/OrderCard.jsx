@@ -100,12 +100,20 @@ const OrderCard = React.memo(({ order, onUpdate, allOrders = [] }) => {
     }
   };
 
+  // Toggle expand/collapse
+  const toggleExpand = () => {
+    setExpanded(!expanded);
+  };
+
   return (
     <>
-      {/* Compact Card */}
+      {/* Compact Card - No height expansion when opened */}
       <div className="bg-gray-900/50 border border-gray-800 rounded-lg hover:border-cyan-500/30 transition-all">
-        {/* Main Content - Always Visible */}
-        <div className="p-3">
+        {/* Main Content - Always Visible - CLICKABLE */}
+        <div 
+          className="p-3 cursor-pointer"
+          onClick={toggleExpand}
+        >
           {/* Header Row */}
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -123,12 +131,11 @@ const OrderCard = React.memo(({ order, onUpdate, allOrders = [] }) => {
             </div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] text-gray-500">{getTimeElapsed()}</span>
-              <button
-                onClick={() => setExpanded(!expanded)}
-                className="p-1 hover:bg-gray-800 rounded transition-colors"
-              >
-                {expanded ? <ChevronUp className="w-3.5 h-3.5 text-gray-400" /> : <ChevronDown className="w-3.5 h-3.5 text-gray-400" />}
-              </button>
+              {expanded ? (
+                <ChevronUp className="w-3.5 h-3.5 text-gray-400" />
+              ) : (
+                <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+              )}
             </div>
           </div>
 
@@ -157,8 +164,8 @@ const OrderCard = React.memo(({ order, onUpdate, allOrders = [] }) => {
               <span className="text-base font-bold text-cyan-400">{formatPrice(order.grandTotal)}</span>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex gap-1.5">
+            {/* Action Buttons - Prevent card toggle when clicking */}
+            <div className="flex gap-1.5" onClick={(e) => e.stopPropagation()}>
               {isPending && (
                 <>
                   <button
@@ -209,9 +216,9 @@ const OrderCard = React.memo(({ order, onUpdate, allOrders = [] }) => {
           </div>
         </div>
 
-        {/* Expandable Details */}
+        {/* Expandable Details - Appears BELOW card when expanded */}
         {expanded && (
-          <div className="border-t border-gray-800 p-3 space-y-2 bg-black/20">
+          <div className="border-t border-gray-800 p-3 space-y-2 bg-black/20 animate-slideDown">
             {/* Order ID */}
             <div className="flex items-center gap-2 text-xs">
               <Hash className="w-3 h-3 text-gray-500" />
@@ -288,7 +295,7 @@ const OrderCard = React.memo(({ order, onUpdate, allOrders = [] }) => {
   );
 });
 
-// Session Bill Preview Modal (Compact Version)
+// Session Bill Preview Modal (unchanged)
 const SessionBillPreview = ({ sessionOrders, onClose, username }) => {
   const [selectedOrders, setSelectedOrders] = useState(
     sessionOrders.reduce((acc, order) => ({

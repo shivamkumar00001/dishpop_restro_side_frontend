@@ -1118,36 +1118,38 @@ export default function OrderPage() {
       </header>
 
       {/* MAIN CONTENT */}
-      <main className="flex-1 overflow-hidden bg-black">
-        <div className="h-full grid grid-cols-1 md:grid-cols-3 gap-4 p-4">
-          <OrderColumn
-            title="Pending Orders"
-            count={pendingOrders.length}
-            orders={pendingOrders}
-            onUpdate={handleUpdate}
-            color="cyan"
-            allOrders={processedOrders}
-          />
+   
+{/* MAIN CONTENT */}
+<main className="flex-1 bg-black p-4 overflow-hidden">
+  <div className="h-full grid grid-cols-1 md:grid-cols-3 gap-4">
+    <OrderColumn
+      title="Pending Orders"
+      count={pendingOrders.length}
+      orders={pendingOrders}
+      onUpdate={handleUpdate}
+      color="cyan"
+      allOrders={processedOrders}
+    />
 
-          <OrderColumn
-            title="Confirmed"
-            count={confirmedOrders.length}
-            orders={confirmedOrders}
-            onUpdate={handleUpdate}
-            color="cyan"
-            allOrders={processedOrders}
-          />
+    <OrderColumn
+      title="Confirmed"
+      count={confirmedOrders.length}
+      orders={confirmedOrders}
+      onUpdate={handleUpdate}
+      color="cyan"
+      allOrders={processedOrders}
+    />
 
-          <OrderColumn
-            title="Completed"
-            count={completedOrders.length}
-            orders={completedOrders}
-            onUpdate={handleUpdate}
-            color="green"
-            allOrders={processedOrders}
-          />
-        </div>
-      </main>
+    <OrderColumn
+      title="Completed"
+      count={completedOrders.length}
+      orders={completedOrders}
+      onUpdate={handleUpdate}
+      color="green"
+      allOrders={processedOrders}
+    />
+  </div>
+</main>
     </div>
   );
 }
