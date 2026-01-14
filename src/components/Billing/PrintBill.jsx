@@ -1,6 +1,6 @@
 import React from "react";
 
-export default function PrintBill({ bill, restaurantName }) {
+export default function PrintBill({ bill, restaurantName, billingConfig }) {
   if (!bill) return null;
 
   const discountAmount =
@@ -24,6 +24,22 @@ export default function PrintBill({ bill, restaurantName }) {
 
   const printerWidth = getPrinterWidth();
   const is58mm = printerWidth === 58;
+
+  // Helper to format GST display based on tax type
+  const formatTaxLabel = (taxName, taxRate) => {
+    if (!billingConfig) return `${taxName} (${taxRate}%)`;
+    
+    switch (billingConfig.taxType) {
+      case 'CGST_SGST':
+        return `${taxName} (${taxRate}%)`;
+      case 'IGST':
+        return `IGST (${taxRate}%)`;
+      case 'INCLUSIVE_GST':
+        return `GST (Incl.) (${taxRate}%)`;
+      default:
+        return `${taxName} (${taxRate}%)`;
+    }
+  };
 
   return (
     <>
@@ -124,14 +140,34 @@ export default function PrintBill({ bill, restaurantName }) {
             font-size: ${is58mm ? '12px' : '15px'};
             font-weight: bold;
             text-transform: uppercase;
-            margin: 0 0 ${is58mm ? '1.5mm' : '2mm'} 0 !important;
+            margin: 0 0 ${is58mm ? '1mm' : '1.5mm'} 0 !important;
             padding: 0 !important;
+          }
+
+          .r-legal-name {
+            font-size: ${is58mm ? '8px' : '9px'};
+            margin: ${is58mm ? '0.5mm' : '1mm'} 0 !important;
+            padding: 0 !important;
+          }
+
+          .r-gst {
+            font-size: ${is58mm ? '7px' : '8px'};
+            margin: ${is58mm ? '0.5mm' : '1mm'} 0 !important;
+            padding: 0 !important;
+          }
+
+          .r-address {
+            font-size: ${is58mm ? '6.5px' : '7.5px'};
+            color: #333;
+            margin: ${is58mm ? '0.5mm' : '1mm'} 0 !important;
+            padding: 0 !important;
+            line-height: 1.3 !important;
           }
 
           .r-bill-no {
             font-size: ${is58mm ? '9px' : '11px'};
             font-weight: bold;
-            margin: ${is58mm ? '1mm' : '1.5mm'} 0 !important;
+            margin: ${is58mm ? '1.5mm' : '2mm'} 0 ${is58mm ? '0.5mm' : '1mm'} 0 !important;
             padding: 0 !important;
           }
 
@@ -249,6 +285,14 @@ export default function PrintBill({ bill, restaurantName }) {
             margin: ${is58mm ? '2mm' : '2.5mm'} 0 0 0 !important;
           }
 
+          .r-tax-summary {
+            margin: ${is58mm ? '2mm' : '2.5mm'} 0 !important;
+            padding: ${is58mm ? '2mm' : '2.5mm'} !important;
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            font-size: ${is58mm ? '7px' : '8px'};
+          }
+
           .r-footer {
             text-align: center;
             margin: ${is58mm ? '2.5mm' : '3mm'} 0 0 0 !important;
@@ -287,6 +331,30 @@ export default function PrintBill({ bill, restaurantName }) {
             <div className="r-title">
               {(restaurantName || "RESTAURANT").toUpperCase()}
             </div>
+            
+            {/* 🔥 Legal business name */}
+            {billingConfig?.legalName && (
+              <div className="r-legal-name">
+                {billingConfig.legalName}
+              </div>
+            )}
+            
+            {/* 🔥 GST Number */}
+            {billingConfig?.gstNumber && (
+              <div className="r-gst">
+                GSTIN: {billingConfig.gstNumber}
+              </div>
+            )}
+            
+            {/* 🔥 Address */}
+            {billingConfig?.address && (
+              <div className="r-address">
+                {billingConfig.address}
+                {billingConfig.state && `, ${billingConfig.state}`}
+                {billingConfig.pincode && ` - ${billingConfig.pincode}`}
+              </div>
+            )}
+            
             <div className="r-bill-no">
               BILL NO: {bill.billNumber}
             </div>
@@ -373,7 +441,7 @@ export default function PrintBill({ bill, restaurantName }) {
             {bill.taxes?.map((tax, index) => (
               <div key={index} className="r-total-row">
                 <span className="r-total-label">
-                  {tax.name} ({tax.rate}%):
+                  {formatTaxLabel(tax.name, tax.rate)}:
                 </span>
                 <span>₹{tax.amount.toFixed(2)}</span>
               </div>
@@ -384,6 +452,67 @@ export default function PrintBill({ bill, restaurantName }) {
               <span>₹{bill.grandTotal.toFixed(2)}</span>
             </div>
           </div>
+
+          {/* 🔥 Tax Summary (for GST compliance) */}
+          {billingConfig && bill.taxes && bill.taxes.length > 0 && (
+            <div className="r-tax-summary">
+              <div style={{ 
+                textAlign: 'center', 
+                fontWeight: 'bold', 
+                marginBottom: is58mm ? '1mm' : '1.5mm',
+                fontSize: is58mm ? '7.5px' : '8.5px'
+              }}>
+                TAX SUMMARY
+              </div>
+              
+              {billingConfig.taxType === 'CGST_SGST' && bill.taxes.length >= 2 && (
+                <>
+                  <div className="r-total-row" style={{ fontSize: is58mm ? '6.5px' : '7.5px' }}>
+                    <span>Taxable Amount:</span>
+                    <span>₹{(bill.subtotal - discountAmount + (bill.serviceCharge?.amount || 0)).toFixed(2)}</span>
+                  </div>
+                  <div className="r-total-row" style={{ fontSize: is58mm ? '6.5px' : '7.5px' }}>
+                    <span>CGST ({(billingConfig.taxRate / 2).toFixed(1)}%):</span>
+                    <span>₹{bill.taxes[0]?.amount.toFixed(2)}</span>
+                  </div>
+                  <div className="r-total-row" style={{ fontSize: is58mm ? '6.5px' : '7.5px' }}>
+                    <span>SGST ({(billingConfig.taxRate / 2).toFixed(1)}%):</span>
+                    <span>₹{bill.taxes[1]?.amount.toFixed(2)}</span>
+                  </div>
+                  <div className="r-total-row" style={{ 
+                    fontSize: is58mm ? '6.5px' : '7.5px',
+                    fontWeight: 'bold',
+                    marginTop: is58mm ? '0.5mm' : '1mm',
+                    paddingTop: is58mm ? '0.5mm' : '1mm',
+                    borderTop: '1px solid #999'
+                  }}>
+                    <span>Total Tax:</span>
+                    <span>₹{bill.totalTax.toFixed(2)}</span>
+                  </div>
+                </>
+              )}
+
+              {billingConfig.taxType === 'IGST' && (
+                <>
+                  <div className="r-total-row" style={{ fontSize: is58mm ? '6.5px' : '7.5px' }}>
+                    <span>Taxable Amount:</span>
+                    <span>₹{(bill.subtotal - discountAmount + (bill.serviceCharge?.amount || 0)).toFixed(2)}</span>
+                  </div>
+                  <div className="r-total-row" style={{ fontSize: is58mm ? '6.5px' : '7.5px' }}>
+                    <span>IGST ({billingConfig.taxRate}%):</span>
+                    <span>₹{bill.totalTax.toFixed(2)}</span>
+                  </div>
+                </>
+              )}
+
+              {billingConfig.taxType === 'INCLUSIVE_GST' && (
+                <div className="r-total-row" style={{ fontSize: is58mm ? '6.5px' : '7.5px' }}>
+                  <span>GST (Included) ({billingConfig.taxRate}%):</span>
+                  <span>₹{bill.totalTax.toFixed(2)}</span>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="r-footer">
             <div className="r-footer-line">
@@ -399,6 +528,13 @@ export default function PrintBill({ bill, restaurantName }) {
             {bill.status === "FINALIZED" && (
               <div className="r-paid">
                 ★ ★ ★  PAID  ★ ★ ★
+              </div>
+            )}
+
+            {/* 🔥 PAN Number (for compliance) */}
+            {billingConfig?.panNumber && (
+              <div className="r-note">
+                PAN: {billingConfig.panNumber}
               </div>
             )}
 

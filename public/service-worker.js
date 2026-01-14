@@ -1,7 +1,7 @@
 /**
  * Service Worker for Offline-First Restaurant Billing
  * Handles caching and offline functionality
- * Updated to exclude auth endpoints and handle API properly
+ * Hardened with extra safety checks (non-breaking)
  */
 
 const CACHE_NAME = 'dishpop-billing-v1';
@@ -14,14 +14,37 @@ const PRECACHE_URLS = [
   '/manifest.json',
 ];
 
+/**
+ * Allow only http(s) requests
+ */
+function isCacheableRequest(request) {
+  return (
+    request.url.startsWith('http://') ||
+    request.url.startsWith('https://')
+  );
+}
+
+/**
+ * Extra scheme safety (chrome-extension, ws, blob, etc.)
+ */
+function isUnsupportedScheme(url) {
+  return (
+    url.protocol === 'chrome-extension:' ||
+    url.protocol === 'devtools:' ||
+    url.protocol === 'blob:' ||
+    url.protocol === 'ws:' ||
+    url.protocol === 'wss:'
+  );
+}
+
 // Patterns to exclude from caching
 const EXCLUDE_PATTERNS = [
-  /\/api\/auth\//, // All auth endpoints
-  /\/api\/.*\/login/, // Login endpoints
-  /\/api\/.*\/register/, // Register endpoints
-  /\/api\/.*\/logout/, // Logout endpoints
-  /\/api\/.*\/refresh/, // Token refresh endpoints
-  /socket\.io/, // Socket.io connections
+  /\/api\/auth\//,
+  /\/api\/.*\/login/,
+  /\/api\/.*\/register/,
+  /\/api\/.*\/logout/,
+  /\/api\/.*\/refresh/,
+  /socket\.io/,
 ];
 
 // API endpoints that should use network-first strategy
@@ -32,222 +55,178 @@ const API_PATTERNS = [
   /\/api\/.*\/sessions/,
 ];
 
-/**
- * Check if URL should be excluded from caching
- */
 function shouldExclude(url) {
   return EXCLUDE_PATTERNS.some(pattern => pattern.test(url));
 }
 
-/**
- * Check if URL is an API call
- */
 function isAPICall(url) {
   return API_PATTERNS.some(pattern => pattern.test(url));
 }
 
 /**
- * Install event - cache essential files
+ * INSTALL
  */
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing service worker...');
-  
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('[SW] Caching app shell');
-        return cache.addAll(PRECACHE_URLS);
-      })
-      .then(() => {
-        console.log('[SW] Service worker installed successfully');
-        return self.skipWaiting();
-      })
-      .catch((error) => {
-        console.error('[SW] Installation failed:', error);
-      })
+      .then(cache => cache.addAll(PRECACHE_URLS))
+      .then(() => self.skipWaiting())
+      .catch(err => console.error('[SW] Install failed:', err))
   );
 });
 
 /**
- * Activate event - clean up old caches
+ * ACTIVATE
  */
 self.addEventListener('activate', (event) => {
   console.log('[SW] Activating service worker...');
-  
   event.waitUntil(
     caches.keys()
-      .then((cacheNames) => {
-        return Promise.all(
-          cacheNames.map((cacheName) => {
-            if (cacheName !== CACHE_NAME && cacheName !== RUNTIME_CACHE) {
-              console.log('[SW] Deleting old cache:', cacheName);
-              return caches.delete(cacheName);
+      .then(names =>
+        Promise.all(
+          names.map(name => {
+            if (name !== CACHE_NAME && name !== RUNTIME_CACHE) {
+              return caches.delete(name);
             }
           })
-        );
-      })
-      .then(() => {
-        console.log('[SW] Service worker activated');
-        return self.clients.claim();
-      })
+        )
+      )
+      .then(() => self.clients.claim())
   );
 });
 
 /**
- * Fetch event - handle requests with appropriate strategy
+ * FETCH
  */
 self.addEventListener('fetch', (event) => {
   const { request } = event;
-  const url = new URL(request.url);
 
-  // Skip non-GET requests
-  if (request.method !== 'GET') {
+  // Skip non-GET
+  if (request.method !== 'GET') return;
+
+  // Skip non-http(s)
+  if (!isCacheableRequest(request)) return;
+
+  let url;
+  try {
+    url = new URL(request.url);
+  } catch {
     return;
   }
 
-  // Skip excluded URLs (auth, websockets, etc.)
-  if (shouldExclude(url.href)) {
-    console.log('[SW] Skipping excluded URL:', url.pathname);
-    return;
-  }
+  // Skip unsupported schemes
+  if (isUnsupportedScheme(url)) return;
 
-  // Handle API calls with network-first strategy
+  // Skip excluded URLs
+  if (shouldExclude(url.href)) return;
+
+  // API → network first
   if (isAPICall(url.href)) {
     event.respondWith(networkFirstStrategy(request));
     return;
   }
 
-  // Handle static assets with cache-first strategy
+  // Static → cache first
   event.respondWith(cacheFirstStrategy(request));
 });
 
 /**
- * Network-first strategy for API calls
- * Try network first, fallback to cache if offline
+ * NETWORK FIRST (API)
  */
 async function networkFirstStrategy(request) {
   const cache = await caches.open(RUNTIME_CACHE);
 
   try {
-    // Try network first
-    const networkResponse = await fetch(request);
-    
-    // Cache successful responses
-    if (networkResponse && networkResponse.status === 200) {
-      cache.put(request, networkResponse.clone());
-    }
-    
-    return networkResponse;
-  } catch (error) {
-    // Network failed, try cache
-    console.log('[SW] Network request failed, trying cache:', request.url);
-    
-    const cachedResponse = await cache.match(request);
-    
-    if (cachedResponse) {
-      console.log('[SW] Serving from cache:', request.url);
-      return cachedResponse;
+    const response = await fetch(request);
+
+    if (
+      response &&
+      response.status === 200 &&
+      response.type !== 'opaque'
+    ) {
+      try {
+        await cache.put(request, response.clone());
+      } catch (e) {
+        console.warn('[SW] Cache put failed:', request.url);
+      }
     }
 
-    // No cache available, return offline response
-    console.log('[SW] No cache available for:', request.url);
-    
-    // Return a JSON response indicating offline mode for API calls
+    return response;
+  } catch {
+    const cached = await cache.match(request);
+    if (cached) return cached;
+
     return new Response(
       JSON.stringify({
         success: false,
         offline: true,
-        message: 'This request failed because you are offline',
+        message: 'Offline – network unavailable',
       }),
       {
         status: 503,
-        statusText: 'Service Unavailable',
-        headers: new Headers({
-          'Content-Type': 'application/json',
-        }),
+        headers: { 'Content-Type': 'application/json' },
       }
     );
   }
 }
 
 /**
- * Cache-first strategy for static assets
- * Try cache first, fallback to network
+ * CACHE FIRST (STATIC)
  */
 async function cacheFirstStrategy(request) {
   const cache = await caches.open(CACHE_NAME);
-  
-  // Try cache first
-  const cachedResponse = await cache.match(request);
-  
-  if (cachedResponse) {
-    return cachedResponse;
-  }
 
-  // Cache miss, fetch from network
+  const cached = await cache.match(request);
+  if (cached) return cached;
+
   try {
-    const networkResponse = await fetch(request);
-    
-    // Cache the response for future use
-    if (networkResponse && networkResponse.status === 200) {
-      cache.put(request, networkResponse.clone());
-    }
-    
-    return networkResponse;
-  } catch (error) {
-    console.log('[SW] Network and cache failed for:', request.url);
-    
-    // For navigation requests, show offline page
-    if (request.mode === 'navigate') {
-      const offlinePage = await cache.match('/offline.html');
-      if (offlinePage) {
-        return offlinePage;
+    const response = await fetch(request);
+
+    if (
+      response &&
+      response.status === 200 &&
+      response.type !== 'opaque'
+    ) {
+      try {
+        await cache.put(request, response.clone());
+      } catch (e) {
+        console.warn('[SW] Cache put failed:', request.url);
       }
     }
 
-    // Return a basic offline response
-    return new Response('Offline', {
-      status: 503,
-      statusText: 'Service Unavailable',
-    });
+    return response;
+  } catch {
+    if (request.mode === 'navigate') {
+      const offline = await cache.match('/offline.html');
+      if (offline) return offline;
+    }
+
+    return new Response('Offline', { status: 503 });
   }
 }
 
 /**
- * Background sync event
- * Sync data when connection is restored
+ * BACKGROUND SYNC
  */
 self.addEventListener('sync', (event) => {
-  console.log('[SW] Background sync triggered:', event.tag);
-  
   if (event.tag === 'sync-bills') {
     event.waitUntil(
-      // Send message to clients to trigger sync
-      self.clients.matchAll().then((clients) => {
-        clients.forEach((client) => {
-          client.postMessage({
-            type: 'BACKGROUND_SYNC',
-            tag: event.tag,
-          });
-        });
-      })
+      self.clients.matchAll().then(clients =>
+        clients.forEach(client =>
+          client.postMessage({ type: 'BACKGROUND_SYNC' })
+        )
+      )
     );
   }
 });
 
 /**
- * Message event - handle messages from clients
+ * MESSAGE
  */
 self.addEventListener('message', (event) => {
-  console.log('[SW] Message received:', event.data);
-  
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
-  
-  if (event.data && event.data.type === 'CLIENTS_CLAIM') {
-    self.clients.claim();
-  }
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
+  if (event.data?.type === 'CLIENTS_CLAIM') self.clients.claim();
 });
 
-console.log('[SW] Service Worker loaded');
+console.log('[SW] Service Worker loaded safely');

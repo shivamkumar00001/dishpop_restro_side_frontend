@@ -1,7 +1,9 @@
 /**
- * Billing API Service with Offline Support
+ * Billing API Service with Offline Support + GST Configuration
  * Wraps existing billingApi.js with offline capabilities
  * Maintains compatibility with existing API structure
+ * 
+ * 🆕 Added: Billing configuration methods for GST compliance
  */
 
 import axios from "axios";
@@ -46,6 +48,126 @@ class BillingAPI {
       withCredentials: true,
     });
   }
+
+  /* ===============================
+     🆕 BILLING CONFIGURATION METHODS
+  ================================ */
+
+  /**
+   * Fetch billing configuration for a restaurant
+   * Public endpoint - no auth required (for printing bills)
+   */
+  async fetchBillingConfig(username) {
+    try {
+      console.log('📋 Fetching billing config for:', username);
+      
+      const axiosInstance = this.createAuthAxios();
+      const response = await axiosInstance.get(`/billing/config/${username}`);
+
+      if (response.data.success && response.data.data) {
+        console.log('✅ Billing config loaded:', response.data.data.legalName);
+        
+        // Cache config locally for offline use
+        try {
+          localStorage.setItem(
+            `billingConfig_${username}`,
+            JSON.stringify(response.data.data)
+          );
+        } catch (storageError) {
+          console.warn('Failed to cache billing config:', storageError);
+        }
+        
+        return response.data;
+      }
+
+      return { success: false, data: null };
+    } catch (error) {
+      console.warn('Failed to fetch billing config:', error.response?.status);
+      
+      // Try to get cached config
+      try {
+        const cached = localStorage.getItem(`billingConfig_${username}`);
+        if (cached) {
+          console.log('📦 Using cached billing config');
+          return { success: true, data: JSON.parse(cached), cached: true };
+        }
+      } catch (cacheError) {
+        console.warn('Failed to get cached config:', cacheError);
+      }
+      
+      return { success: false, data: null, error: error.message };
+    }
+  }
+
+  /**
+   * Create or update billing configuration
+   * Authenticated endpoint - requires login
+   */
+  async saveBillingConfig(configData) {
+    try {
+      console.log('💾 Saving billing config...');
+      
+      const axiosInstance = this.createAuthAxios();
+      const response = await axiosInstance.post('/billing/setup', configData);
+
+      if (response.data.success && response.data.data) {
+        console.log('✅ Billing config saved:', response.data.data.legalName);
+        
+        // Update cache
+        try {
+          const username = response.data.data.username;
+          localStorage.setItem(
+            `billingConfig_${username}`,
+            JSON.stringify(response.data.data)
+          );
+        } catch (storageError) {
+          console.warn('Failed to cache billing config:', storageError);
+        }
+        
+        return response.data;
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error('Failed to save billing config:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete billing configuration
+   * Authenticated endpoint - requires login
+   */
+  async deleteBillingConfig(username) {
+    try {
+      console.log('🗑️ Deleting billing config...');
+      
+      const axiosInstance = this.createAuthAxios();
+      const response = await axiosInstance.delete('/billing/config');
+
+      if (response.data.success) {
+        console.log('✅ Billing config deleted');
+        
+        // Clear cache
+        try {
+          localStorage.removeItem(`billingConfig_${username}`);
+        } catch (storageError) {
+          console.warn('Failed to clear cached config:', storageError);
+        }
+        
+        return response.data;
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error('Failed to delete billing config:', error);
+      throw error;
+    }
+  }
+
+  /* ===============================
+     EXISTING BILLING METHODS
+  ================================ */
 
   /**
    * Fetch all bills with offline support
@@ -511,7 +633,9 @@ class BillingAPI {
 // Singleton instance
 const billingAPI = new BillingAPI();
 
-// Export all methods to maintain compatibility with existing code
+/* ===============================
+   EXPORTS - Existing Methods
+================================ */
 export const fetchAllBills = (username, filters) => billingAPI.fetchAllBills(username, filters);
 export const fetchBillById = (username, billId) => billingAPI.fetchBillById(username, billId);
 export const createBillFromOrders = (username, data) => billingAPI.createBillFromOrders(username, data);
@@ -526,6 +650,13 @@ export const fetchBillsByTable = (username, tableNumber, status) => billingAPI.f
 export const fetchBillingStats = (username, period) => billingAPI.fetchBillingStats(username, period);
 export const fetchActiveSessions = (username) => billingAPI.fetchActiveSessions(username);
 export const fetchSessionDetails = (username, sessionId) => billingAPI.fetchSessionDetails(username, sessionId);
+
+/* ===============================
+   🆕 EXPORTS - Billing Config Methods
+================================ */
+export const fetchBillingConfig = (username) => billingAPI.fetchBillingConfig(username);
+export const saveBillingConfig = (configData) => billingAPI.saveBillingConfig(configData);
+export const deleteBillingConfig = (username) => billingAPI.deleteBillingConfig(username);
 
 // Export default for convenience
 export default billingAPI;

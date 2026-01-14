@@ -141,6 +141,7 @@ import BillingPage from "../pages/Billing/BillingPage";
 
 /* ---------- 404 ---------- */
 import NotFound from "../pages/NotFound/NotFound";
+import CustomerAnalyticsPage from "../pages/customerAnalytics/CustomerAnalyticsPage";
 
 export default function AppRoutes() {
   return (
@@ -192,6 +193,9 @@ export default function AppRoutes() {
       <Route path="/:username/categories" element={<CategoriesPage />} />
       <Route path="/:username/menu/categories" element={<CategoriesPage />} />
       <Route path="/:username/addons" element={<AddonManager />} />
+
+{/* ================= customerAnalytics ================= */}
+      <Route path="/:username/analytics" element={<CustomerAnalyticsPage/>} />
 
       {/* ================= 404 ================= */}
       <Route path="/404" element={<NotFound />} />
