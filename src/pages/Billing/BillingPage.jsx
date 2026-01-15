@@ -24,20 +24,22 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
-// ✅ Import offline-capable API wrapper
+// Import API services
 import billingAPI from "../../api/billingApi";
 import menuApi from "../../api/menuApi";
+import axios from "axios";
+import API_BASE_URL from "../../config/api";
 
-// ✅ Import new offline components
+// Import components
 import OfflineIndicator from "../../components/Billing/OfflineIndicator";
 import SyncStatus from "../../components/Billing/SyncStatus";
 import PrinterSettings from "../../components/Billing/PrinterSettings";
-
-// Import existing components
 import BillCard from "../../components/Billing/BillCard";
 import DishSearchModal from "../../components/Billing/DishSearchModal";
 import Toast from "../../components/Billing/Toast";
 import PrintBill from "../../components/Billing/PrintBill";
+
+const API_URL = API_BASE_URL || import.meta.env.VITE_API_URL || "http://localhost:5001/api/v1";
 
 const INITIAL_FORM = {
   tableNumber: "",
@@ -65,6 +67,7 @@ export default function BillingPage() {
   const [bills, setBills] = useState([]);
   const [stats, setStats] = useState({});
   const [dishes, setDishes] = useState([]);
+  const [billingConfig, setBillingConfig] = useState(null); // 🔥 NEW
   const [loading, setLoading] = useState(true);
   const [menuLoading, setMenuLoading] = useState(false);
 
@@ -80,7 +83,7 @@ export default function BillingPage() {
   const [showDishSearch, setShowDishSearch] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showMergeModal, setShowMergeModal] = useState(false);
-  const [showPrinterSettings, setShowPrinterSettings] = useState(false); // ✅ NEW
+  const [showPrinterSettings, setShowPrinterSettings] = useState(false);
   const [selectedBill, setSelectedBill] = useState(null);
   const [selectedBillsForMerge, setSelectedBillsForMerge] = useState([]);
 
@@ -97,7 +100,71 @@ export default function BillingPage() {
     setTimeout(() => setToast(null), 3000);
   }, []);
 
-  // ✅ Load menu with offline caching
+  // 🔥 NEW: Generate taxes array based on billing config
+  const generateTaxesFromConfig = useCallback((config) => {
+    if (!config || !config.taxRate || config.taxType === 'NO_GST') {
+      return [];
+    }
+
+    switch (config.taxType) {
+      case 'CGST_SGST':
+        const halfRate = config.taxRate / 2;
+        return [
+          { name: 'CGST', rate: halfRate },
+          { name: 'SGST', rate: halfRate }
+        ];
+      
+      case 'IGST':
+        return [{ name: 'IGST', rate: config.taxRate }];
+      
+      case 'INCLUSIVE_GST':
+        return [{ name: 'GST (Incl.)', rate: config.taxRate }];
+      
+      default:
+        return [{ name: 'Tax', rate: config.taxRate }];
+    }
+  }, []);
+
+  // 🔥 NEW: Load billing configuration
+  const loadBillingConfig = useCallback(async () => {
+    if (!usernameToFetch) return;
+    
+    try {
+      console.log('📋 Loading billing config for:', usernameToFetch);
+      
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `${API_URL}/billing/config/${usernameToFetch}`,
+        {
+          headers: {
+            Authorization: token ? `Bearer ${token}` : "",
+          },
+          withCredentials: true,
+        }
+      );
+
+      if (response.data?.success && response.data?.data) {
+        console.log('✅ Billing config loaded:', response.data.data);
+        setBillingConfig(response.data.data);
+        
+        // Update initial form taxes based on billing config
+        const generatedTaxes = generateTaxesFromConfig(response.data.data);
+        if (generatedTaxes.length > 0) {
+          setCreateForm(prev => ({
+            ...prev,
+            taxes: generatedTaxes
+          }));
+          console.log('✅ Taxes configured:', generatedTaxes);
+        }
+      }
+    } catch (error) {
+      console.warn('⚠️ Billing config not found or failed to load:', error.response?.status);
+      // Don't show error toast - billing config is optional
+      // Restaurant may not have set it up yet
+    }
+  }, [usernameToFetch, generateTaxesFromConfig]);
+
+  // Load menu with offline caching
   const loadMenu = useCallback(async () => {
     if (!usernameToFetch) return;
     try {
@@ -126,7 +193,7 @@ export default function BillingPage() {
     }
   }, [usernameToFetch, showToast]);
 
-  // ✅ Load bills with offline support
+  // Load bills with offline support
   const loadBills = useCallback(async () => {
     if (!usernameToFetch) return;
     try {
@@ -147,7 +214,7 @@ export default function BillingPage() {
         }
       }
 
-      // ✅ Use offline-capable API
+      // Use offline-capable API
       const [billsRes, statsRes] = await Promise.all([
         billingAPI.fetchAllBills(usernameToFetch, filters),
         billingAPI.fetchBillingStats(usernameToFetch, dateFilter === "all" ? "all" : dateFilter),
@@ -170,9 +237,10 @@ export default function BillingPage() {
   }, [usernameToFetch, statusFilter, paymentFilter, dateFilter, showToast]);
 
   useEffect(() => {
+    loadBillingConfig(); // 🔥 Load billing config first
     loadBills();
     loadMenu();
-  }, [loadBills, loadMenu]);
+  }, [loadBillingConfig, loadBills, loadMenu]);
 
   // Filter bills
   const filteredBills = useMemo(
@@ -282,7 +350,7 @@ export default function BillingPage() {
     };
   }, [createForm.items, createForm.discount, createForm.discountType, createForm.serviceCharge, createForm.taxes]);
 
-  // ✅ Actions with offline support
+  // Actions with offline support
   const handleCreateBill = async () => {
     if (!createForm.tableNumber || !createForm.customerName || !createForm.phoneNumber) {
       showToast("Please fill all required fields", "error");
@@ -294,7 +362,6 @@ export default function BillingPage() {
     }
 
     try {
-      // ✅ Use offline-capable API
       const response = await billingAPI.createBillManually(usernameToFetch, createForm);
       
       if (response.offline) {
@@ -304,7 +371,10 @@ export default function BillingPage() {
       }
       
       setShowCreateModal(false);
-      setCreateForm(INITIAL_FORM);
+      setCreateForm({
+        ...INITIAL_FORM,
+        taxes: billingConfig ? generateTaxesFromConfig(billingConfig) : INITIAL_FORM.taxes
+      });
       loadBills();
     } catch (error) {
       console.error("Create bill failed:", error);
@@ -326,7 +396,6 @@ export default function BillingPage() {
     if (!paidAmount) return;
 
     try {
-      // ✅ Use offline-capable API
       const response = await billingAPI.finalizeBill(usernameToFetch, billId, {
         paymentMethod: paymentMethod.toUpperCase(),
         paidAmount: parseFloat(paidAmount),
@@ -350,7 +419,6 @@ export default function BillingPage() {
     const reason = prompt("Reason:", "Cancelled by user");
 
     try {
-      // ✅ Use offline-capable API
       const response = await billingAPI.deleteBill(usernameToFetch, billId, reason);
       
       if (response.offline) {
@@ -381,7 +449,6 @@ export default function BillingPage() {
     );
 
     try {
-      // ✅ Use offline-capable API
       const response = await billingAPI.mergeBills(usernameToFetch, {
         billIds: selectedBillsForMerge,
         customerName: highestBill.customerName,
@@ -404,27 +471,26 @@ export default function BillingPage() {
   };
 
   const handlePrint = (bill) => {
-  console.log('🖨️ Starting print for:', bill.billNumber);
-  
-  // Set the bill to print
-  setPrintBill(bill);
-  
-  // CRITICAL: Wait for React to render AND browser to paint
-  setTimeout(() => {
-    console.log('📄 Triggering print dialog...');
+    console.log('🖨️ Starting print for:', bill.billNumber);
     
-    // Trigger print
-    window.print();
+    // Set the bill to print
+    setPrintBill(bill);
     
-    // Clean up after print dialog closes
+    // CRITICAL: Wait for React to render AND browser to paint
     setTimeout(() => {
-      console.log('✅ Cleaning up print state');
-      setPrintBill(null);
-    }, 1000);
-    
-  }, 500); // 500ms ensures DOM is ready
-};
-
+      console.log('📄 Triggering print dialog...');
+      
+      // Trigger print
+      window.print();
+      
+      // Clean up after print dialog closes
+      setTimeout(() => {
+        console.log('✅ Cleaning up print state');
+        setPrintBill(null);
+      }, 1000);
+      
+    }, 500); // 500ms ensures DOM is ready
+  };
 
   if (loading) {
     return (
@@ -476,7 +542,6 @@ export default function BillingPage() {
                 <Merge className="w-4 h-4" />
                 Merge
               </button>
-              {/* ✅ NEW: Printer Settings Button */}
               <button
                 onClick={() => setShowPrinterSettings(true)}
                 className="p-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition-all hover:scale-105"
@@ -642,7 +707,10 @@ export default function BillingPage() {
           totals={billTotals}
           onClose={() => {
             setShowCreateModal(false);
-            setCreateForm(INITIAL_FORM);
+            setCreateForm({
+              ...INITIAL_FORM,
+              taxes: billingConfig ? generateTaxesFromConfig(billingConfig) : INITIAL_FORM.taxes
+            });
           }}
           onSearchDishes={() => setShowDishSearch(true)}
           onCreateBill={handleCreateBill}
@@ -693,7 +761,7 @@ export default function BillingPage() {
         />
       )}
 
-      {/* ✅ NEW: Printer Settings Modal */}
+      {/* Printer Settings Modal */}
       {showPrinterSettings && (
         <PrinterSettings onClose={() => setShowPrinterSettings(false)} />
       )}
@@ -701,19 +769,23 @@ export default function BillingPage() {
       {/* Toast Notifications */}
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-      {/* Print Component */}
+      {/* 🔥 UPDATED: Print Component with billing config */}
       {printBill && (
-        <PrintBill bill={printBill} restaurantName={owner?.restaurantName} />
+        <PrintBill 
+          bill={printBill} 
+          restaurantName={owner?.restaurantName}
+          billingConfig={billingConfig}
+        />
       )}
 
-      {/* ✅ NEW: Offline & Sync Indicators */}
+      {/* Offline & Sync Indicators */}
       <OfflineIndicator />
       <SyncStatus />
     </div>
   );
 }
 
-// Sub-components (exactly as in original)
+// Sub-components remain exactly the same
 function StatCard({ icon: Icon, label, value, valueClass = "text-white" }) {
   return (
     <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-800 hover:border-cyan-500/30 transition-all hover:scale-105">
@@ -762,6 +834,8 @@ function EmptyState({ onCreateBill }) {
   );
 }
 
+// CreateBillModal, BillDetailsModal, and MergeBillsModal remain exactly the same as in original
+// (Keeping them unchanged to maintain existing functionality)
 function CreateBillModal({
   form,
   setForm,
