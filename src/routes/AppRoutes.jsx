@@ -143,6 +143,8 @@ import BillingPage from "../pages/Billing/BillingPage";
 import NotFound from "../pages/NotFound/NotFound";
 import CustomerAnalyticsPage from "../pages/customerAnalytics/CustomerAnalyticsPage";
 
+import GSTAuditPage from "../pages/Billing/GSTAuditPage";
+
 export default function AppRoutes() {
   return (
     <Routes>
@@ -186,16 +188,27 @@ export default function AppRoutes() {
         <Route path="/:username/qr" element={<QrPage />} />
         <Route path="/:username/orders" element={<OrdersPage />} />
         <Route path="/:username/billing" element={<BillingPage/>} />
+        <Route path="/:username/analytics" element={<CustomerAnalyticsPage/>} />
+
+        <Route path="/:username/categories" element={<CategoriesPage />} />
+
+        <Route path="/:username/menu/categories" element={<CategoriesPage />} />
+
+        <Route path="/:username/addons" element={<AddonManager />} />
+
+
+       
+      <Route path="/:username/gst-audit" element={<GSTAuditPage/>} />
 
       </Route>
 
       {/* ================= NON-PROTECTED USER ROUTES ================= */}
-      <Route path="/:username/categories" element={<CategoriesPage />} />
-      <Route path="/:username/menu/categories" element={<CategoriesPage />} />
-      <Route path="/:username/addons" element={<AddonManager />} />
+      
+      
+      
 
 {/* ================= customerAnalytics ================= */}
-      <Route path="/:username/analytics" element={<CustomerAnalyticsPage/>} />
+      
 
       {/* ================= 404 ================= */}
       <Route path="/404" element={<NotFound />} />
