@@ -6,8 +6,8 @@ import {
   Cog6ToothIcon,
   QrCodeIcon,
   DocumentTextIcon,
-  ChartBarIcon, // ✅ CUSTOMER ANALYTICS ICON
-  ClipboardDocumentCheckIcon, // ✅ AUDIT LOG ICON
+  ChartBarIcon,
+  ClipboardDocumentCheckIcon,
 } from "@heroicons/react/24/outline";
 
 import { Link, useParams, useLocation } from "react-router-dom";
@@ -40,9 +40,10 @@ export default function Sidebar() {
 
   const basePath = username ? `/${username}` : "";
 
+  // ✅ ARRANGED BY PRIORITY (Most Used → Least Used)
   const menuItems = [
+    // 🔥 CORE OPERATIONS (Daily Use)
     { label: "Dashboard", icon: HomeIcon, path: `${basePath}/dashboard` },
-    { label: "Digital Menu", icon: CubeIcon, path: `${basePath}/dishes` },
     {
       label: "Orders",
       icon: ClipboardDocumentListIcon,
@@ -54,20 +55,22 @@ export default function Sidebar() {
       path: `${basePath}/billing`,
     },
 
-    // ✅ CUSTOMER ANALYTICS (SAFE ADD)
+    // 📊 MANAGEMENT (Regular Use)
+    { label: "Digital Menu", icon: CubeIcon, path: `${basePath}/dishes` },
     {
       label: "Customer Analytics",
       icon: ChartBarIcon,
       path: `${basePath}/analytics`,
     },
 
-    // ✅ AUDIT LOG (NEW)
+    // 📋 COMPLIANCE & REPORTING (Weekly/Monthly)
     {
-      label: "Audit Log",
+      label: "GST Audit",
       icon: ClipboardDocumentCheckIcon,
       path: `${basePath}/gst-audit`,
     },
 
+    // ⚙️ SETUP & CONFIGURATION (Occasional Use)
     { label: "Get QR", icon: QrCodeIcon, path: `${basePath}/qr` },
     { label: "Subscription", icon: BellIcon, path: `${basePath}/subscribe` },
     { label: "Settings", icon: Cog6ToothIcon, path: `/settings` },
