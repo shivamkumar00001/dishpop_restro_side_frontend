@@ -80,26 +80,26 @@ export default function Sidebar() {
     <aside
       className="
         w-16 sm:w-20 md:w-64
-        bg-[#0d1117]
+        bg-white
         h-screen
         flex flex-col
         sticky top-0 left-0
         z-50
-        border-r border-white/10
+        border-r border-gray-200
         overflow-y-auto
       "
     >
       {/* BRAND */}
-      <div className="px-3 md:px-6 py-5 border-b border-white/10">
-        <h1 className="text-base md:text-xl font-semibold tracking-tight text-white">
+      <div className="px-3 md:px-6 py-5 border-b border-gray-200">
+        <h1 className="text-base md:text-xl font-bold tracking-tight text-gray-900">
           <span className="hidden md:inline">
-            Dish<span className="text-cyan-400">Pop</span>
+            Dish<span className="text-blue-600">Pop</span>
           </span>
-          <span className="md:hidden text-cyan-400 text-center block">
+          <span className="md:hidden text-blue-600 text-center block font-bold">
             DP
           </span>
         </h1>
-        <p className="text-xs text-gray-400 mt-1 hidden md:block">
+        <p className="text-xs text-gray-500 mt-1 hidden md:block">
           Restaurant Dashboard
         </p>
       </div>
@@ -116,12 +116,12 @@ export default function Sidebar() {
                   title={label}
                   className={`
                     flex items-center justify-center md:justify-start gap-3
-                    px-2 md:px-4 py-3 rounded-xl text-sm font-medium
+                    px-2 md:px-4 py-3 rounded-lg text-sm font-medium
                     transition-all duration-200
                     ${
                       active
-                        ? "bg-cyan-500/15 text-cyan-400 shadow-inner"
-                        : "text-gray-300 hover:bg-white/5 hover:text-white"
+                        ? "bg-blue-50 text-blue-600 shadow-sm"
+                        : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
                     }
                   `}
                 >
@@ -135,25 +135,25 @@ export default function Sidebar() {
       </nav>
 
       {/* FOOTER – OWNER & RESTAURANT */}
-      <div className="p-2 md:p-4 border-t border-white/10 mt-auto">
-        <div className="flex flex-col md:flex-row items-center gap-2 md:gap-3 rounded-xl bg-white/5 p-2 md:p-3 backdrop-blur-md">
+      <div className="p-2 md:p-4 border-t border-gray-200 mt-auto">
+        <div className="flex flex-col md:flex-row items-center gap-2 md:gap-3 rounded-lg bg-gray-50 p-2 md:p-3 border border-gray-200">
           <div
             className="
-              h-10 w-10 rounded-xl flex-shrink-0
-              bg-gradient-to-br from-cyan-500 to-blue-600
+              h-10 w-10 rounded-lg flex-shrink-0
+              bg-gradient-to-br from-blue-500 to-blue-600
               flex items-center justify-center
               text-white font-semibold text-sm
-              shadow-lg
+              shadow-sm
             "
           >
             {getInitials(ownerName)}
           </div>
 
           <div className="min-w-0 flex-1 hidden md:block">
-            <p className="truncate text-sm font-medium text-white">
+            <p className="truncate text-sm font-medium text-gray-900">
               {ownerName}
             </p>
-            <p className="truncate text-xs text-gray-400">
+            <p className="truncate text-xs text-gray-500">
               {restaurantName}
             </p>
           </div>

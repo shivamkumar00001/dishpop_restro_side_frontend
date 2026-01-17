@@ -1,315 +1,14 @@
-// import React, { useState } from "react";
-// import { Plus, Menu, Utensils, X, Search, Filter, FolderKanban } from "lucide-react";
-// import { useNavigate, useParams } from "react-router-dom";
-
-// import DishCard from "../../components/menu/DishCard";
-// import useMenu from "../../hooks/useMenu";
-// import Sidebar from "../../components/Sidebar";
-
-// export default function DishList() {
-//   const [sidebarOpen, setSidebarOpen] = useState(false);
-//   const [filterOpen, setFilterOpen] = useState(false);
-
-//   const navigate = useNavigate();
-//   const { username } = useParams();
-
-//   const {
-//     dishes,
-//     filteredDishes,
-//     categories,
-//     loading,
-//     searchQuery,
-//     setSearchQuery,
-//     selectedCategory,
-//     setSelectedCategory,
-//     selectedStatus,
-//     setSelectedStatus,
-//     sortBy,
-//     setSortBy,
-//     toggleAvailability,
-//     deleteDish,
-//     clearFilters,
-//   } = useMenu();
-
-//   const handleAddNewDish = () => {
-//     navigate(`/${username}/menu/add`);
-//   };
-
-//   const handleEdit = (dish) => {
-//     navigate(`/${username}/dish/${dish._id}/edit`);
-//   };
-
-//   const handleManageCategories = () => {
-//     navigate(`/${username}/categories`);
-//   };
-
-//   if (loading) {
-//     return (
-//       <div className="min-h-screen bg-black flex items-center justify-center">
-//         <div className="text-center">
-//           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto"></div>
-//           <p className="text-white mt-4">Loading menu...</p>
-//         </div>
-//       </div>
-//     );
-//   }
-
-//   return (
-//     <div className="min-h-screen bg-black">
-//       {/* HEADER */}
-//       <header className="bg-gray-900 border-b border-gray-800 sticky top-0 z-50">
-//         <div className="flex items-center justify-between px-4 md:px-8 py-3">
-//           {/* Left */}
-//           <div className="flex items-center gap-3">
-//             <button
-//               onClick={() => setSidebarOpen(!sidebarOpen)}
-//               className="lg:hidden p-2 rounded border border-gray-700 text-gray-400 hover:text-cyan-400"
-//             >
-//               <Menu className="w-5 h-5" />
-//             </button>
-
-//             <div className="flex items-center gap-2">
-//               <div className="w-10 h-10 rounded bg-cyan-500 flex items-center justify-center">
-//                 <Utensils className="text-white w-5 h-5" />
-//               </div>
-//               <div>
-//                 <h1 className="text-lg font-semibold text-white">Dishpop</h1>
-//                 <p className="text-xs text-gray-400">Menu Manager</p>
-//               </div>
-//             </div>
-//           </div>
-
-//           {/* Search */}
-//           <div className="hidden md:block flex-1 max-w-md mx-6">
-//             <div className="relative">
-//               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-//               <input
-//                 value={searchQuery}
-//                 onChange={(e) => setSearchQuery(e.target.value)}
-//                 placeholder="Search dishes..."
-//                 className="w-full pl-10 pr-4 py-2 bg-black border border-gray-700 rounded text-gray-200 placeholder-gray-500 focus:border-cyan-500 focus:outline-none"
-//               />
-//               {searchQuery && (
-//                 <button
-//                   onClick={() => setSearchQuery("")}
-//                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
-//                 >
-//                   <X className="w-4 h-4" />
-//                 </button>
-//               )}
-//             </div>
-//           </div>
-
-//           {/* Right */}
-//           <div className="flex items-center gap-3">
-//             <button
-//               onClick={() => setFilterOpen(!filterOpen)}
-//               className="md:hidden p-2 rounded border border-gray-700 text-gray-400 hover:text-cyan-400"
-//             >
-//               <Filter className="w-5 h-5" />
-//             </button>
-
-//             <span className="hidden lg:block text-sm text-gray-300">
-//               {filteredDishes.length} / {dishes.length} Dishes
-//             </span>
-
-//             {/* Categories Button */}
-//             <button
-//               onClick={handleManageCategories}
-//               className="hidden sm:flex items-center gap-2 px-4 py-2 bg-black border border-gray-700 text-gray-300 rounded hover:border-cyan-500 hover:text-cyan-400"
-//             >
-//               <FolderKanban className="w-4 h-4" />
-//               <span>Categories</span>
-//             </button>
-
-//             {/* Addons Button */}
-//             <button
-//               onClick={() => navigate(`/${username}/addons`)}
-//               className="hidden sm:flex items-center gap-2 px-4 py-2 bg-black border border-gray-700 text-gray-300 rounded hover:border-cyan-500 hover:text-cyan-400"
-//             >
-//               <Plus className="w-4 h-4" />
-//               <span>Add-ons</span>
-//             </button>
-
-//             <button
-//               onClick={handleAddNewDish}
-//               className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded flex items-center gap-2"
-//             >
-//               <Plus className="w-4 h-4" />
-//               <span className="hidden sm:inline">Add Dish</span>
-//             </button>
-//           </div>
-//         </div>
-
-//         {/* Mobile Search */}
-//         <div className="md:hidden px-4 pb-3">
-//           <div className="relative">
-//             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-//             <input
-//               value={searchQuery}
-//               onChange={(e) => setSearchQuery(e.target.value)}
-//               placeholder="Search dishes..."
-//               className="w-full pl-10 pr-4 py-2 bg-black border border-gray-700 rounded text-gray-200 placeholder-gray-500 focus:border-cyan-500 focus:outline-none"
-//             />
-//           </div>
-
-//           {/* Mobile Categories Button */}
-//           <button
-//             onClick={handleManageCategories}
-//             className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-2 bg-black border border-gray-700 text-gray-300 rounded hover:border-cyan-500 hover:text-cyan-400 sm:hidden"
-//           >
-//             <FolderKanban className="w-4 h-4" />
-//             <span>Manage Categories</span>
-//           </button>
-
-//           {/* Mobile Addons Button */}
-//           <button
-//             onClick={() => navigate(`/${username}/addons`)}
-//             className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-2 bg-black border border-gray-700 text-gray-300 rounded hover:border-cyan-500 hover:text-cyan-400 sm:hidden"
-//           >
-//             <Plus className="w-4 h-4" />
-//             <span>Manage Add-ons</span>
-//           </button>
-//         </div>
-//       </header>
-
-//       <div className="flex">
-//         {/* SIDEBAR */}
-//         {sidebarOpen && (
-//           <div
-//             className="fixed inset-0 bg-black/80 z-40 lg:hidden"
-//             onClick={() => setSidebarOpen(false)}
-//           />
-//         )}
-
-//         <div
-//           className={`fixed lg:static inset-y-0 left-0 z-50 transition-transform ${
-//             sidebarOpen
-//               ? "translate-x-0"
-//               : "-translate-x-full lg:translate-x-0"
-//           }`}
-//         >
-//           <Sidebar />
-//         </div>
-
-//         {/* MAIN */}
-//         <main className="flex-1 px-4 md:px-8 py-6">
-//           {/* FILTER BAR */}
-//           <div
-//             className={`mb-6 ${
-//               filterOpen ? "block" : "hidden md:block"
-//             }`}
-//           >
-//             <div className="flex flex-wrap gap-3">
-//               {/* Category */}
-//               <select
-//                 value={selectedCategory}
-//                 onChange={(e) => setSelectedCategory(e.target.value)}
-//                 className="bg-black border border-gray-700 rounded px-4 py-2 text-gray-300 focus:border-cyan-500 focus:outline-none"
-//               >
-//                 <option value="All">All Categories</option>
-//                 {categories.slice(1).map((c) => (
-//                   <option key={c} value={c}>
-//                     {c}
-//                   </option>
-//                 ))}
-//               </select>
-
-//               {/* Status */}
-//               <select
-//                 value={selectedStatus}
-//                 onChange={(e) => setSelectedStatus(e.target.value)}
-//                 className="bg-black border border-gray-700 rounded px-4 py-2 text-gray-300 focus:border-cyan-500 focus:outline-none"
-//               >
-//                 <option value="All">All Status</option>
-//                 <option value="Available">Available</option>
-//                 <option value="Unavailable">Unavailable</option>
-//               </select>
-
-//               {/* Sort */}
-//               <select
-//                 value={sortBy}
-//                 onChange={(e) => setSortBy(e.target.value)}
-//                 className="bg-black border border-gray-700 rounded px-4 py-2 text-gray-300 focus:border-cyan-500 focus:outline-none"
-//               >
-//                 <option value="name-asc">Sort: Name ↑</option>
-//                 <option value="name-desc">Sort: Name ↓</option>
-//                 <option value="price-asc">Sort: Price ↑</option>
-//                 <option value="price-desc">Sort: Price ↓</option>
-//                 <option value="popularity">Sort: Popularity</option>
-//               </select>
-
-//               {(searchQuery ||
-//                 selectedCategory !== "All" ||
-//                 selectedStatus !== "All" ||
-//                 sortBy !== "name-asc") && (
-//                 <button
-//                   onClick={clearFilters}
-//                   className="px-4 py-2 bg-red-500/10 border border-red-500/30 text-red-400 rounded hover:bg-red-500/20"
-//                 >
-//                   Clear Filters
-//                 </button>
-//               )}
-//             </div>
-//           </div>
-
-//           {/* DISH LIST */}
-//           <div className="space-y-4">
-//             {filteredDishes.length === 0 ? (
-//               <div className="text-center py-20 border border-dashed border-gray-800 rounded">
-//                 <Utensils className="w-12 h-12 text-gray-500 mx-auto mb-4" />
-//                 <p className="text-gray-400 mb-2">No dishes found</p>
-//                 {dishes.length === 0 ? (
-//                   <div className="space-y-3">
-//                     <p className="text-sm text-gray-500">
-//                       Start by creating categories first
-//                     </p>
-//                     <button
-//                       onClick={handleManageCategories}
-//                       className="px-6 py-2 bg-cyan-500 text-white rounded hover:bg-cyan-600"
-//                     >
-//                       Create Categories
-//                     </button>
-//                   </div>
-//                 ) : (
-//                   <button
-//                     onClick={clearFilters}
-//                     className="mt-4 px-6 py-2 bg-gray-700 text-white rounded hover:bg-gray-600"
-//                   >
-//                     Clear Filters
-//                   </button>
-//                 )}
-//               </div>
-//             ) : (
-//               filteredDishes.map((dish) => (
-//                 <DishCard
-//                   key={dish._id}
-//                   dish={dish}
-//                   onToggleAvailability={toggleAvailability}
-//                   onEdit={() => handleEdit(dish)}
-//                   onDelete={deleteDish}
-//                 />
-//               ))
-//             )}
-//           </div>
-//         </main>
-//       </div>
-//     </div>
-//   );
-// }
-
-
-import React, { useState } from "react";
-import { Plus, Utensils, X, Search, Filter, FolderKanban } from "lucide-react";
+import React, { useState, useMemo, useCallback } from "react";
+import { Plus, Search, X, Filter, ChevronDown, ArrowLeft } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import DishCard from "../../components/menu/DishCard";
 import useMenu from "../../hooks/useMenu";
 import Sidebar from "../../components/Sidebar";
+import ConfirmDialog from "../../components/orders/ConfirmDialog";
+import Toast from "../../components/Billing/Toast";
 
 export default function DishList() {
-  const [filterOpen, setFilterOpen] = useState(false);
-
   const navigate = useNavigate();
   const { username } = useParams();
 
@@ -331,26 +30,81 @@ export default function DishList() {
     clearFilters,
   } = useMenu();
 
-  const handleAddNewDish = () => {
+  // UI State
+  const [showFilters, setShowFilters] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [toast, setToast] = useState(null);
+
+  const showToast = useCallback((message, type = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  }, []);
+
+  // Quick Stats
+  const stats = useMemo(() => {
+    return {
+      total: dishes.length,
+      available: dishes.filter((d) => d.isAvailable).length,
+      unavailable: dishes.filter((d) => !d.isAvailable).length,
+      categories: new Set(dishes.map((d) => d.categoryId?.name)).size,
+    };
+  }, [dishes]);
+
+  // Handlers
+  const handleAddDish = useCallback(() => {
     navigate(`/${username}/menu/add`);
-  };
+  }, [navigate, username]);
 
-  const handleEdit = (dish) => {
-    navigate(`/${username}/dish/${dish._id}/edit`);
-  };
+  const handleEditDish = useCallback(
+    (dish) => {
+      navigate(`/${username}/dish/${dish._id}/edit`);
+    },
+    [navigate, username]
+  );
 
-  const handleManageCategories = () => {
-    navigate(`/${username}/categories`);
-  };
+  const handleDeleteClick = useCallback((dishId) => {
+    const dish = dishes.find((d) => d._id === dishId);
+    setDeleteConfirm({ dishId, dishName: dish?.name });
+  }, [dishes]);
+
+  const handleDeleteConfirm = useCallback(async () => {
+    if (!deleteConfirm) return;
+
+    try {
+      await deleteDish(deleteConfirm.dishId);
+      showToast("Dish deleted successfully", "success");
+      setDeleteConfirm(null);
+    } catch (error) {
+      showToast("Failed to delete dish", "error");
+    }
+  }, [deleteConfirm, deleteDish, showToast]);
+
+  const handleToggleAvailability = useCallback(
+    async (dishId) => {
+      try {
+        await toggleAvailability(dishId);
+        showToast("Availability updated", "success");
+      } catch (error) {
+        showToast("Failed to update availability", "error");
+      }
+    },
+    [toggleAvailability, showToast]
+  );
+
+  const hasActiveFilters =
+    searchQuery ||
+    selectedCategory !== "All" ||
+    selectedStatus !== "All" ||
+    sortBy !== "name-asc";
 
   if (loading) {
     return (
-      <div className="flex">
+      <div className="flex min-h-screen bg-gray-50">
         <Sidebar />
-        <div className="flex-1 min-h-screen bg-black flex items-center justify-center">
+        <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto"></div>
-            <p className="text-white mt-4">Loading menu...</p>
+            <div className="w-16 h-16 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-gray-600">Loading menu...</p>
           </div>
         </div>
       </div>
@@ -358,224 +112,245 @@ export default function DishList() {
   }
 
   return (
-    <div className="flex min-h-screen bg-black">
-      {/* SIDEBAR - Always visible */}
+    <div className="flex min-h-screen bg-gray-50">
+      {/* SIDEBAR */}
       <Sidebar />
 
       {/* MAIN CONTENT */}
-      <div className="flex-1 flex flex-col min-h-screen">
+      <div className="flex-1 flex flex-col">
         {/* HEADER */}
-        <header className="bg-gray-900 border-b border-gray-800 sticky top-0 z-40">
-          <div className="flex items-center justify-between px-4 md:px-8 py-3">
-            {/* Left */}
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                {/* <div className="w-10 h-10 rounded bg-cyan-500 flex items-center justify-center"> */}
-                  {/* <Utensils className="text-white w-5 h-5" /> */}
+        <header className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm">
+          <div className="px-6 py-4">
+            <div className="flex items-center justify-between mb-4">
+              {/* Left: Title & Back */}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => navigate(-1)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  title="Go back"
+                >
+                  <ArrowLeft className="w-5 h-5 text-gray-600" />
+                </button>
+                <div>
+                  <h1 className="text-xl font-bold text-gray-900">Menu</h1>
+                  <p className="text-xs text-gray-500">
+                    {filteredDishes.length} of {dishes.length} dishes
+                  </p>
                 </div>
-                {/* <div className="hidden sm:block">
-                  <h1 className="text-lg font-semibold text-white">Dishpop</h1>
-                  <p className="text-xs text-gray-400">Menu Manager</p>
-                </div> */}
-              {/* </div> */}
-            </div>
+              </div>
 
-            {/* Search */}
-            <div className="hidden md:block flex-1 max-w-md mx-6">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                <input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search dishes..."
-                  className="w-full pl-10 pr-4 py-2 bg-black border border-gray-700 rounded text-gray-200 placeholder-gray-500 focus:border-cyan-500 focus:outline-none"
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
+              {/* Right: Actions */}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => navigate(`/${username}/categories`)}
+                  className="hidden sm:flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Categories
+                </button>
+
+                <button
+                  onClick={() => navigate(`/${username}/addons`)}
+                  className="hidden sm:flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Add-ons
+                </button>
+
+                <button
+                  onClick={handleAddDish}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors shadow-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span className="hidden sm:inline">Add Dish</span>
+                  <span className="sm:hidden">Add</span>
+                </button>
               </div>
             </div>
 
-            {/* Right */}
-            <div className="flex items-center gap-2 md:gap-3">
-              <button
-                onClick={() => setFilterOpen(!filterOpen)}
-                className="md:hidden p-2 rounded border border-gray-700 text-gray-400 hover:text-cyan-400"
-              >
-                <Filter className="w-5 h-5" />
-              </button>
-
-              <span className="hidden lg:block text-sm text-gray-300">
-                {filteredDishes.length} / {dishes.length} Dishes
-              </span>
-
-              {/* Categories Button */}
-              <button
-                onClick={handleManageCategories}
-                className="hidden sm:flex items-center gap-2 px-3 md:px-4 py-2 bg-black border border-gray-700 text-gray-300 rounded hover:border-cyan-500 hover:text-cyan-400"
-              >
-                <FolderKanban className="w-4 h-4" />
-                <span className="hidden lg:inline">Categories</span>
-              </button>
-
-              {/* Addons Button */}
-              <button
-                onClick={() => navigate(`/${username}/addons`)}
-                className="hidden sm:flex items-center gap-2 px-3 md:px-4 py-2 bg-black border border-gray-700 text-gray-300 rounded hover:border-cyan-500 hover:text-cyan-400"
-              >
-                <Plus className="w-4 h-4" />
-                <span className="hidden lg:inline">Add-ons</span>
-              </button>
-
-              <button
-                onClick={handleAddNewDish}
-                className="px-3 md:px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                <span className="hidden sm:inline">Add Dish</span>
-              </button>
+            {/* Stats Bar */}
+            <div className="flex items-center gap-6 text-sm">
+              <div className="flex items-center gap-2">
+                <span className="text-gray-500">Total:</span>
+                <span className="font-semibold text-gray-900">{stats.total}</span>
+              </div>
+              <div className="w-px h-4 bg-gray-300" />
+              <div className="flex items-center gap-2">
+                <span className="text-gray-500">Available:</span>
+                <span className="font-semibold text-green-600">
+                  {stats.available}
+                </span>
+              </div>
+              <div className="w-px h-4 bg-gray-300" />
+              <div className="flex items-center gap-2">
+                <span className="text-gray-500">Unavailable:</span>
+                <span className="font-semibold text-orange-600">
+                  {stats.unavailable}
+                </span>
+              </div>
+              <div className="w-px h-4 bg-gray-300" />
+              <div className="flex items-center gap-2">
+                <span className="text-gray-500">Categories:</span>
+                <span className="font-semibold text-gray-900">
+                  {stats.categories}
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* Mobile Search */}
-          <div className="md:hidden px-4 pb-3">
+          {/* Search & Filters */}
+          <div className="px-6 pb-4 space-y-3">
+            {/* Search Bar */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
+                type="text"
+                placeholder="Search dishes by name, category, or tags..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search dishes..."
-                className="w-full pl-10 pr-4 py-2 bg-black border border-gray-700 rounded text-gray-200 placeholder-gray-500 focus:border-cyan-500 focus:outline-none"
+                className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
             </div>
 
-            {/* Mobile Categories Button */}
-            <button
-              onClick={handleManageCategories}
-              className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-2 bg-black border border-gray-700 text-gray-300 rounded hover:border-cyan-500 hover:text-cyan-400 sm:hidden"
-            >
-              <FolderKanban className="w-4 h-4" />
-              <span>Manage Categories</span>
-            </button>
+            {/* Filter Toggle */}
+            <div className="flex items-center justify-between">
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <Filter className="w-4 h-4" />
+                Filters
+                <ChevronDown
+                  className={`w-4 h-4 transition-transform ${
+                    showFilters ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
 
-            {/* Mobile Addons Button */}
-            <button
-              onClick={() => navigate(`/${username}/addons`)}
-              className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-2 bg-black border border-gray-700 text-gray-300 rounded hover:border-cyan-500 hover:text-cyan-400 sm:hidden"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Manage Add-ons</span>
-            </button>
+              {hasActiveFilters && (
+                <button
+                  onClick={clearFilters}
+                  className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  Clear all filters
+                </button>
+              )}
+            </div>
+
+            {/* Filters */}
+            {showFilters && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="All">All Categories</option>
+                  {categories.slice(1).map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={selectedStatus}
+                  onChange={(e) => setSelectedStatus(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="All">All Status</option>
+                  <option value="Available">Available</option>
+                  <option value="Unavailable">Unavailable</option>
+                </select>
+
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="name-asc">Name (A-Z)</option>
+                  <option value="name-desc">Name (Z-A)</option>
+                  <option value="price-asc">Price (Low-High)</option>
+                  <option value="price-desc">Price (High-Low)</option>
+                  <option value="popularity">Most Popular</option>
+                </select>
+              </div>
+            )}
           </div>
         </header>
 
-        {/* MAIN CONTENT AREA */}
-        <main className="flex-1 px-4 md:px-8 py-6 overflow-y-auto">
-          {/* FILTER BAR */}
-          <div
-            className={`mb-6 ${
-              filterOpen ? "block" : "hidden md:block"
-            }`}
-          >
-            <div className="flex flex-wrap gap-3">
-              {/* Category */}
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="bg-black border border-gray-700 rounded px-4 py-2 text-gray-300 focus:border-cyan-500 focus:outline-none"
-              >
-                <option value="All">All Categories</option>
-                {categories.slice(1).map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-
-              {/* Status */}
-              <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className="bg-black border border-gray-700 rounded px-4 py-2 text-gray-300 focus:border-cyan-500 focus:outline-none"
-              >
-                <option value="All">All Status</option>
-                <option value="Available">Available</option>
-                <option value="Unavailable">Unavailable</option>
-              </select>
-
-              {/* Sort */}
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="bg-black border border-gray-700 rounded px-4 py-2 text-gray-300 focus:border-cyan-500 focus:outline-none"
-              >
-                <option value="name-asc">Sort: Name ↑</option>
-                <option value="name-desc">Sort: Name ↓</option>
-                <option value="price-asc">Sort: Price ↑</option>
-                <option value="price-desc">Sort: Price ↓</option>
-                <option value="popularity">Sort: Popularity</option>
-              </select>
-
-              {(searchQuery ||
-                selectedCategory !== "All" ||
-                selectedStatus !== "All" ||
-                sortBy !== "name-asc") && (
+        {/* CONTENT */}
+        <main className="flex-1 px-6 py-6 overflow-y-auto">
+          {filteredDishes.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <Search className="w-8 h-8 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                No dishes found
+              </h3>
+              <p className="text-sm text-gray-500 mb-6 max-w-sm">
+                {dishes.length === 0
+                  ? "Get started by adding your first dish to the menu"
+                  : "Try adjusting your search or filters"}
+              </p>
+              {dishes.length === 0 ? (
+                <button
+                  onClick={handleAddDish}
+                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                >
+                  Add Your First Dish
+                </button>
+              ) : (
                 <button
                   onClick={clearFilters}
-                  className="px-4 py-2 bg-red-500/10 border border-red-500/30 text-red-400 rounded hover:bg-red-500/20"
+                  className="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium rounded-lg transition-colors"
                 >
                   Clear Filters
                 </button>
               )}
             </div>
-          </div>
-
-          {/* DISH LIST */}
-          <div className="space-y-4">
-            {filteredDishes.length === 0 ? (
-              <div className="text-center py-20 border border-dashed border-gray-800 rounded">
-                <Utensils className="w-12 h-12 text-gray-500 mx-auto mb-4" />
-                <p className="text-gray-400 mb-2">No dishes found</p>
-                {dishes.length === 0 ? (
-                  <div className="space-y-3">
-                    <p className="text-sm text-gray-500">
-                      Start by creating categories first
-                    </p>
-                    <button
-                      onClick={handleManageCategories}
-                      className="px-6 py-2 bg-cyan-500 text-white rounded hover:bg-cyan-600"
-                    >
-                      Create Categories
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={clearFilters}
-                    className="mt-4 px-6 py-2 bg-gray-700 text-white rounded hover:bg-gray-600"
-                  >
-                    Clear Filters
-                  </button>
-                )}
-              </div>
-            ) : (
-              filteredDishes.map((dish) => (
+          ) : (
+            <div className="space-y-3">
+              {filteredDishes.map((dish) => (
                 <DishCard
                   key={dish._id}
                   dish={dish}
-                  onToggleAvailability={toggleAvailability}
-                  onEdit={() => handleEdit(dish)}
-                  onDelete={deleteDish}
+                  onToggleAvailability={handleToggleAvailability}
+                  onEdit={() => handleEditDish(dish)}
+                  onDelete={handleDeleteClick}
                 />
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </main>
       </div>
+
+      {/* DELETE CONFIRMATION */}
+      {deleteConfirm && (
+        <ConfirmDialog
+          title="Delete Dish"
+          message={`Are you sure you want to delete "${deleteConfirm.dishName}"? This action cannot be undone.`}
+          type="danger"
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => setDeleteConfirm(null)}
+        />
+      )}
+
+      {/* TOAST */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }
