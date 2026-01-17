@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { motion } from "framer-motion";
 import api from "../../services/api";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
@@ -14,6 +15,7 @@ import {
   Upload,
   X,
   Image as ImageIcon,
+  ArrowLeft,
 } from "lucide-react";
 
 import { State, City } from "country-state-city";
@@ -45,7 +47,7 @@ export default function EditProfile() {
   const [profilePhotoPreview, setProfilePhotoPreview] = useState(null);
   const [currentProfilePhoto, setCurrentProfilePhoto] = useState(null);
 
-  // 🔥 Gallery images state
+  // Gallery images state
   const [galleryFiles, setGalleryFiles] = useState([]);
   const [galleryPreviews, setGalleryPreviews] = useState([]);
   const [currentGalleryImages, setCurrentGalleryImages] = useState([]);
@@ -70,13 +72,11 @@ export default function EditProfile() {
           description: user.description ?? "",
         });
 
-        // Set current profile photo
         if (user.profilePhoto) {
           setCurrentProfilePhoto(user.profilePhoto);
           setProfilePhotoPreview(user.profilePhoto);
         }
 
-        // 🔥 Set current gallery images
         if (user.galleryImages && user.galleryImages.length > 0) {
           setCurrentGalleryImages(user.galleryImages);
         }
@@ -105,20 +105,16 @@ export default function EditProfile() {
     setCities(City.getCitiesOfState("IN", iso));
   };
 
-  // Handle profile photo selection
   const handleProfilePhotoChange = (e) => {
     const file = e.target.files[0];
-
     if (!file) return;
 
-    // Validate file type
     const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
     if (!allowedTypes.includes(file.type)) {
       toast.error("Only JPEG, PNG, and WebP images are allowed");
       return;
     }
 
-    // Validate file size (5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast.error("Image size should be less than 5MB");
       return;
@@ -126,7 +122,6 @@ export default function EditProfile() {
 
     setProfilePhotoFile(file);
 
-    // Create preview
     const reader = new FileReader();
     reader.onloadend = () => {
       setProfilePhotoPreview(reader.result);
@@ -134,7 +129,6 @@ export default function EditProfile() {
     reader.readAsDataURL(file);
   };
 
-  // Remove profile photo
   const handleRemoveProfilePhoto = () => {
     setProfilePhotoFile(null);
     setProfilePhotoPreview(currentProfilePhoto);
@@ -143,20 +137,16 @@ export default function EditProfile() {
     }
   };
 
-  // 🔥 Handle gallery images selection
   const handleGalleryImagesChange = (e) => {
     const files = Array.from(e.target.files);
-
     if (!files.length) return;
 
-    // Check total count (existing + new)
     const totalCount = currentGalleryImages.length + galleryFiles.length + files.length;
     if (totalCount > 3) {
       toast.error("Maximum 3 gallery images allowed");
       return;
     }
 
-    // Validate each file
     const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
     const validFiles = [];
     const newPreviews = [];
@@ -174,7 +164,6 @@ export default function EditProfile() {
 
       validFiles.push(file);
 
-      // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
         newPreviews.push(reader.result);
@@ -187,19 +176,16 @@ export default function EditProfile() {
 
     setGalleryFiles((prev) => [...prev, ...validFiles]);
 
-    // Reset file input
     if (galleryFileInputRef.current) {
       galleryFileInputRef.current.value = "";
     }
   };
 
-  // 🔥 Remove new gallery image (not yet uploaded)
   const handleRemoveNewGalleryImage = (index) => {
     setGalleryFiles((prev) => prev.filter((_, i) => i !== index));
     setGalleryPreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // 🔥 Delete existing gallery image from server
   const handleDeleteExistingGalleryImage = async (imageId) => {
     try {
       await api.delete(`/auth/profile/gallery/${imageId}`);
@@ -218,20 +204,16 @@ export default function EditProfile() {
     setUploading(true);
 
     try {
-      // Create FormData for file upload
       const formData = new FormData();
 
-      // Append all form fields
       Object.keys(form).forEach((key) => {
         formData.append(key, form[key]);
       });
 
-      // Append profile photo if selected
       if (profilePhotoFile) {
         formData.append("profilePhoto", profilePhotoFile);
       }
 
-      // 🔥 Append gallery images if selected
       if (galleryFiles.length > 0) {
         galleryFiles.forEach((file) => {
           formData.append("galleryImages", file);
@@ -256,32 +238,63 @@ export default function EditProfile() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#090B10] text-gray-400">
-        Loading profile…
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50">
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="flex flex-col items-center gap-3"
+        >
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+          <p className="text-slate-600 font-medium">Loading profile…</p>
+        </motion.div>
       </div>
     );
   }
 
   /* ---------------- UI ---------------- */
   return (
-    <div className="min-h-screen bg-[#090B10] px-4 py-12 text-white">
-      <div className="mx-auto max-w-4xl space-y-10">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50 px-4 py-12">
+      {/* Grain Texture */}
+      <div 
+        className="fixed inset-0 opacity-[0.015] pointer-events-none"
+        style={{ 
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` 
+        }}
+      />
+
+      <div className="mx-auto max-w-4xl space-y-8 relative z-10">
         {/* Header */}
-        <header className="space-y-2">
-          <h1 className="text-4xl font-semibold tracking-tight">
+        <motion.header 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-4"
+        >
+          <button
+            onClick={() => navigate("/settings")}
+            className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors"
+          >
+            <ArrowLeft size={20} />
+            <span className="font-medium">Back to Profile</span>
+          </button>
+          <h1 className="text-4xl font-bold tracking-tight text-slate-900">
             Edit Profile
           </h1>
-          <p className="text-gray-400">
+          <p className="text-slate-600">
             Update your restaurant and contact information
           </p>
-        </header>
+        </motion.header>
 
         {/* Card */}
-        <section className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl shadow-xl">
+        <motion.section 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="rounded-2xl border border-slate-200 bg-white shadow-sm"
+        >
           {/* Card Header */}
-          <div className="border-b border-white/10 px-8 py-6">
-            <p className="text-lg font-medium">{form.restaurantName}</p>
-            <p className="text-sm text-gray-400">Owned by {form.ownerName}</p>
+          <div className="border-b border-slate-200 px-8 py-6 bg-gradient-to-r from-blue-50 to-indigo-50">
+            <p className="text-lg font-bold text-slate-900">{form.restaurantName}</p>
+            <p className="text-sm text-slate-600">Owned by {form.ownerName}</p>
           </div>
 
           {/* Form */}
@@ -289,9 +302,8 @@ export default function EditProfile() {
             {/* Profile Photo Upload Section */}
             <Section title="Restaurant Profile Photo">
               <div className="flex items-center gap-8">
-                {/* Photo Preview */}
                 <div className="relative">
-                  <div className="w-32 h-32 rounded-xl overflow-hidden bg-white/5 border border-white/10 flex items-center justify-center">
+                  <div className="w-32 h-32 rounded-xl overflow-hidden bg-slate-100 border-2 border-slate-200 flex items-center justify-center">
                     {profilePhotoPreview ? (
                       <img
                         src={profilePhotoPreview}
@@ -299,21 +311,20 @@ export default function EditProfile() {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <Camera className="w-12 h-12 text-gray-500" />
+                      <Camera className="w-12 h-12 text-slate-400" />
                     )}
                   </div>
                   {profilePhotoFile && (
                     <button
                       type="button"
                       onClick={handleRemoveProfilePhoto}
-                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600 transition"
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-7 h-7 flex items-center justify-center hover:bg-red-600 transition shadow-lg"
                     >
-                      ✕
+                      <X size={14} />
                     </button>
                   )}
                 </div>
 
-                {/* Upload Button */}
                 <div className="flex-1 space-y-2">
                   <input
                     ref={profileFileInputRef}
@@ -325,31 +336,30 @@ export default function EditProfile() {
                   />
                   <label
                     htmlFor="profile-photo-upload"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 rounded-lg cursor-pointer transition"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl cursor-pointer transition-all shadow-lg shadow-blue-500/30 font-semibold"
                   >
                     <Upload size={18} />
                     Upload Profile Photo
                   </label>
-                  <p className="text-sm text-gray-400">
+                  <p className="text-sm text-slate-500">
                     JPG, PNG or WebP. Max 5MB.
                   </p>
                 </div>
               </div>
             </Section>
 
-            {/* 🔥 Gallery Images Upload Section */}
+            {/* Gallery Images Upload Section */}
             <Section title="Restaurant Gallery (Max 3 Images)">
               <div className="space-y-4">
-                {/* Current Images */}
                 {currentGalleryImages.length > 0 && (
                   <div>
-                    <p className="text-sm text-gray-400 mb-3">
+                    <p className="text-sm text-slate-600 mb-3 font-medium">
                       Current Gallery Images
                     </p>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                       {currentGalleryImages.map((image) => (
                         <div key={image._id} className="relative group">
-                          <div className="aspect-square rounded-xl overflow-hidden bg-white/5 border border-white/10">
+                          <div className="aspect-square rounded-xl overflow-hidden bg-slate-100 border-2 border-slate-200">
                             <img
                               src={image.url}
                               alt="Gallery"
@@ -361,9 +371,9 @@ export default function EditProfile() {
                             onClick={() =>
                               handleDeleteExistingGalleryImage(image._id)
                             }
-                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-7 h-7 flex items-center justify-center hover:bg-red-600 transition opacity-0 group-hover:opacity-100"
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-7 h-7 flex items-center justify-center hover:bg-red-600 transition shadow-lg opacity-0 group-hover:opacity-100"
                           >
-                            <X size={16} />
+                            <X size={14} />
                           </button>
                         </div>
                       ))}
@@ -371,16 +381,15 @@ export default function EditProfile() {
                   </div>
                 )}
 
-                {/* New Images Preview */}
                 {galleryPreviews.length > 0 && (
                   <div>
-                    <p className="text-sm text-gray-400 mb-3">
+                    <p className="text-sm text-slate-600 mb-3 font-medium">
                       New Images to Upload
                     </p>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                       {galleryPreviews.map((preview, index) => (
                         <div key={index} className="relative group">
-                          <div className="aspect-square rounded-xl overflow-hidden bg-white/5 border border-white/10">
+                          <div className="aspect-square rounded-xl overflow-hidden bg-slate-100 border-2 border-blue-200">
                             <img
                               src={preview}
                               alt={`New ${index + 1}`}
@@ -390,9 +399,9 @@ export default function EditProfile() {
                           <button
                             type="button"
                             onClick={() => handleRemoveNewGalleryImage(index)}
-                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-7 h-7 flex items-center justify-center hover:bg-red-600 transition opacity-0 group-hover:opacity-100"
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-7 h-7 flex items-center justify-center hover:bg-red-600 transition shadow-lg opacity-0 group-hover:opacity-100"
                           >
-                            <X size={16} />
+                            <X size={14} />
                           </button>
                         </div>
                       ))}
@@ -400,7 +409,6 @@ export default function EditProfile() {
                   </div>
                 )}
 
-                {/* Upload Button */}
                 {currentGalleryImages.length + galleryFiles.length < 3 && (
                   <div className="space-y-2">
                     <input
@@ -414,15 +422,13 @@ export default function EditProfile() {
                     />
                     <label
                       htmlFor="gallery-images-upload"
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg cursor-pointer transition"
+                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 hover:bg-blue-50 hover:border-blue-300 rounded-xl cursor-pointer transition-all font-semibold"
                     >
                       <ImageIcon size={18} />
                       Add Gallery Images
                     </label>
-                    <p className="text-sm text-gray-400">
-                      {3 - currentGalleryImages.length - galleryFiles.length}{" "}
-                      more image(s) can be added. JPG, PNG or WebP. Max 5MB
-                      each.
+                    <p className="text-sm text-slate-500">
+                      {3 - currentGalleryImages.length - galleryFiles.length} more image(s) can be added. JPG, PNG or WebP. Max 5MB each.
                     </p>
                   </div>
                 )}
@@ -506,26 +512,25 @@ export default function EditProfile() {
                 value={form.description}
                 onChange={handleChange}
                 placeholder="Tell customers about your restaurant"
-                className="w-full rounded-xl bg-white/[0.04] border border-white/10
-                px-4 py-3 text-white placeholder-gray-500 focus:border-cyan-500 transition resize-none"
+                className="w-full rounded-xl bg-slate-50 border border-slate-200 px-4 py-3 text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition resize-none outline-none"
               />
             </Section>
 
             {/* Save */}
-            <div className="flex justify-end pt-6 border-t border-white/10">
-              <button
+            <div className="flex justify-end pt-6 border-t border-slate-200">
+              <motion.button
                 type="submit"
                 disabled={uploading}
-                className="flex items-center gap-2 rounded-xl bg-cyan-600
-                px-6 py-3 font-medium hover:bg-cyan-700 transition
-                shadow-lg shadow-cyan-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-3 font-semibold text-white hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg shadow-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Save size={18} />
                 {uploading ? "Saving..." : "Save Changes"}
-              </button>
+              </motion.button>
             </div>
           </form>
-        </section>
+        </motion.section>
       </div>
     </div>
   );
@@ -535,8 +540,8 @@ export default function EditProfile() {
 
 function Section({ title, children }) {
   return (
-    <div className="space-y-6">
-      <h2 className="text-lg font-medium">{title}</h2>
+    <div className="space-y-4">
+      <h2 className="text-lg font-bold text-slate-900">{title}</h2>
       {children}
     </div>
   );
@@ -545,14 +550,14 @@ function Section({ title, children }) {
 function Field({ label, icon, name, value, onChange }) {
   return (
     <div className="space-y-2">
-      <label className="text-sm text-gray-400">{label}</label>
-      <div className="flex items-center gap-3 rounded-xl bg-white/[0.04] border border-white/10 px-4 py-3 focus-within:border-cyan-500">
-        {icon}
+      <label className="text-sm font-medium text-slate-700">{label}</label>
+      <div className="flex items-center gap-3 rounded-xl bg-slate-50 border border-slate-200 px-4 py-3 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 transition">
+        <span className="text-blue-600">{icon}</span>
         <input
           name={name}
           value={value}
           onChange={onChange}
-          className="flex-1 bg-transparent outline-none text-white"
+          className="flex-1 bg-transparent outline-none text-slate-900 placeholder-slate-400"
         />
       </div>
     </div>
@@ -562,25 +567,23 @@ function Field({ label, icon, name, value, onChange }) {
 function Dropdown({ label, icon, name, value, onChange, options, disabled }) {
   return (
     <div className="space-y-2">
-      <label className="text-sm text-gray-400">{label}</label>
+      <label className="text-sm font-medium text-slate-700">{label}</label>
       <div
-        className={`flex items-center gap-3 rounded-xl bg-white/[0.04] border border-white/10 px-4 py-3 ${
-          disabled && "opacity-40"
+        className={`flex items-center gap-3 rounded-xl bg-slate-50 border border-slate-200 px-4 py-3 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 transition ${
+          disabled && "opacity-50"
         }`}
       >
-        {icon}
+        <span className="text-blue-600">{icon}</span>
         <select
           name={name}
           value={value}
           onChange={onChange}
           disabled={disabled}
-          className="flex-1 bg-transparent outline-none text-white"
+          className="flex-1 bg-transparent outline-none text-slate-900"
         >
-          <option value="" className="text-black">
-            Select {label}
-          </option>
+          <option value="">Select {label}</option>
           {options.map((o) => (
-            <option key={o.value} value={o.value} className="text-black">
+            <option key={o.value} value={o.value}>
               {o.label}
             </option>
           ))}
