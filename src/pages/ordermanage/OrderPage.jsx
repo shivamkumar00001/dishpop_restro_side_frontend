@@ -1,590 +1,27 @@
-// import { useEffect, useState, useCallback, useMemo, useRef } from "react";
-// import { useParams } from "react-router-dom";
-// import {
-//   RefreshCw,
-//   Search,
-//   SlidersHorizontal,
-//   X,
-//   Calendar,
-//   TrendingUp,
-//   AlertCircle,
-// } from "lucide-react";
-
-// import { fetchOrders, updateOrderStatus } from "../../api/orderApi";
-// import useLiveOrders from "../../hooks/useLiveOrders";
-// import OrderCard from "../../components/orders/OrderCard";
-// import { saveOrders, loadOrders } from "../../utils/orderStorage";
-// import { useAuth } from "../../context/AuthContext";
-// import OrderColumn from "../../components/orders/OrderColumn";
-
-// export default function OrderPage() {
-//   const { username } = useParams();
-//   const { owner } = useAuth();
-
-//   const [orders, setOrders] = useState([]);
-//   const [loading, setLoading] = useState(true);
-//   const [searchQuery, setSearchQuery] = useState("");
-//   const [refreshing, setRefreshing] = useState(false);
-//   const updatingRef = useRef(false);
-//   const [connectionStatus, setConnectionStatus] = useState("connecting");
-
-//   // Filters
-//   const [sortBy, setSortBy] = useState("newest");
-//   const [filterStatus, setFilterStatus] = useState("all");
-//   const [dateFilter, setDateFilter] = useState("all");
-//   const [showFilters, setShowFilters] = useState(false);
-
-//   /* ===============================
-//      FETCH ORDERS
-//   =============================== */
-//   const loadOrdersData = useCallback(async () => {
-//     const usernameToFetch = username || owner?.username;
-//     if (!usernameToFetch) return;
-
-//     try {
-//       // Load from cache first
-//       const cachedOrders = loadOrders();
-//       if (cachedOrders && Array.isArray(cachedOrders)) {
-//         setOrders(cachedOrders);
-//         setLoading(false);
-//       }
-
-//       // Fetch from server
-//       const res = await fetchOrders(usernameToFetch);
-//       const fetchedOrders = Array.isArray(res.data) ? res.data : [];
-//       setOrders(fetchedOrders);
-//       saveOrders(fetchedOrders);
-//     } catch (error) {
-//       console.error("Failed to fetch orders:", error);
-//       if (!orders.length) {
-//         setOrders([]);
-//       }
-//     } finally {
-//       setLoading(false);
-//     }
-//   }, [username, owner, orders.length]);
-
-//   useEffect(() => {
-//     loadOrdersData();
-//   }, [username, owner?.username]);
-
-//   /* ===============================
-//      LIVE SOCKET UPDATES
-//   =============================== */
-//   const handleOrderEvent = useCallback((type, order) => {
-//     if (updatingRef.current) {
-//       console.log("⏭️ Skipping socket update during manual update");
-//       return;
-//     }
-
-//     console.log(`📡 Socket event: ${type}`, order);
-
-//     setOrders((prev) => {
-//       const prevArray = Array.isArray(prev) ? prev : [];
-//       let updated;
-
-//       if (type === "created") {
-//         if (prevArray.some((o) => o._id === order._id)) {
-//           return prevArray;
-//         }
-//         updated = [order, ...prevArray];
-//       } else if (type === "updated" || type === "replaced") {
-//         updated = prevArray.map((o) => (o._id === order._id ? order : o));
-//       } else if (type === "deleted") {
-//         updated = prevArray.filter((o) => o._id !== order);
-//       } else {
-//         return prevArray;
-//       }
-
-//       saveOrders(updated);
-//       return updated;
-//     });
-//   }, []);
-
-//   const { socket, reconnect, isConnected } = useLiveOrders(
-//     username || owner?.username,
-//     handleOrderEvent
-//   );
-
-//   // Update connection status
-//   useEffect(() => {
-//     if (socket) {
-//       const handleConnect = () => setConnectionStatus("connected");
-//       const handleDisconnect = () => setConnectionStatus("disconnected");
-//       const handleConnectError = () => setConnectionStatus("error");
-
-//       socket.on("connect", handleConnect);
-//       socket.on("disconnect", handleDisconnect);
-//       socket.on("connect_error", handleConnectError);
-
-//       setConnectionStatus(socket.connected ? "connected" : "disconnected");
-
-//       return () => {
-//         socket.off("connect", handleConnect);
-//         socket.off("disconnect", handleDisconnect);
-//         socket.off("connect_error", handleConnectError);
-//       };
-//     }
-//   }, [socket]);
-
-//   /* ===============================
-//      MANUAL REFRESH
-//   =============================== */
-//   const handleRefresh = useCallback(async () => {
-//     setRefreshing(true);
-//     await loadOrdersData();
-//     setTimeout(() => setRefreshing(false), 500);
-//   }, [loadOrdersData]);
-
-//   /* ===============================
-//      UPDATE ORDER STATUS
-//   =============================== */
-//   const handleUpdate = useCallback(
-//     async (id, status) => {
-//       const usernameToUpdate = username || owner?.username;
-//       if (!usernameToUpdate) return;
-
-//       updatingRef.current = true;
-//       let previousOrders = null;
-
-//       setOrders((prev) => {
-//         const prevArray = Array.isArray(prev) ? prev : [];
-//         previousOrders = [...prevArray];
-//         const updated = prevArray.map((o) =>
-//           o._id === id
-//             ? { ...o, status, updatedAt: new Date().toISOString() }
-//             : o
-//         );
-//         saveOrders(updated);
-//         return updated;
-//       });
-
-//       try {
-//         await updateOrderStatus(usernameToUpdate, id, status);
-//         setTimeout(() => {
-//           updatingRef.current = false;
-//         }, 1500);
-//       } catch (error) {
-//         console.error("Failed to update order:", error);
-//         updatingRef.current = false;
-
-//         if (previousOrders) {
-//           setOrders(previousOrders);
-//           saveOrders(previousOrders);
-//         }
-//         alert("Failed to update order. Please try again.");
-//       }
-//     },
-//     [username, owner]
-//   );
-
-//   /* ===============================
-//      DATE FILTER
-//   =============================== */
-//   const filterByDate = useCallback(
-//     (order) => {
-//       if (dateFilter === "all") return true;
-
-//       const orderDate = new Date(order.createdAt);
-//       const now = new Date();
-
-//       switch (dateFilter) {
-//         case "today":
-//           return (
-//             orderDate.getDate() === now.getDate() &&
-//             orderDate.getMonth() === now.getMonth() &&
-//             orderDate.getFullYear() === now.getFullYear()
-//           );
-//         case "7days": {
-//           const diffTime = Math.abs(now - orderDate);
-//           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-//           return diffDays <= 7;
-//         }
-//         case "30days": {
-//           const diffTime = Math.abs(now - orderDate);
-//           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-//           return diffDays <= 30;
-//         }
-//         default:
-//           return true;
-//       }
-//     },
-//     [dateFilter]
-//   );
-
-//   /* ===============================
-//      FILTER & SEARCH & SORT
-//   =============================== */
-//   const processedOrders = useMemo(() => {
-//     const ordersArray = Array.isArray(orders) ? orders : [];
-//     let filtered = [...ordersArray];
-
-//     filtered = filtered.filter(filterByDate);
-
-//     if (searchQuery) {
-//       const query = searchQuery.toLowerCase();
-//       filtered = filtered.filter((order) => {
-//         return (
-//           order._id?.toLowerCase().includes(query) ||
-//           order.tableNumber?.toString().includes(query) ||
-//           order.customerName?.toLowerCase().includes(query) ||
-//           order.phoneNumber?.includes(query) ||
-//           order.items?.some((item) => item.name.toLowerCase().includes(query))
-//         );
-//       });
-//     }
-
-//     if (filterStatus !== "all") {
-//       filtered = filtered.filter((order) => {
-//         if (filterStatus === "pending") return order.status === "pending";
-//         if (filterStatus === "confirmed") return order.status === "confirmed";
-//         if (filterStatus === "completed") return order.status === "completed";
-//         if (filterStatus === "cancelled") return order.status === "cancelled";
-//         return true;
-//       });
-//     }
-
-//     filtered.sort((a, b) => {
-//       switch (sortBy) {
-//         case "newest":
-//           return new Date(b.createdAt) - new Date(a.createdAt);
-//         case "oldest":
-//           return new Date(a.createdAt) - new Date(b.createdAt);
-//         case "table":
-//           return (a.tableNumber || 0) - (b.tableNumber || 0);
-//         case "status": {
-//           const statusOrder = {
-//             pending: 0,
-//             confirmed: 1,
-//             completed: 2,
-//             cancelled: 3,
-//           };
-//           return (statusOrder[a.status] || 0) - (statusOrder[b.status] || 0);
-//         }
-//         default:
-//           return 0;
-//       }
-//     });
-
-//     return filtered;
-//   }, [orders, searchQuery, sortBy, filterStatus, filterByDate]);
-
-//   /* ===============================
-//      STATUS GROUPING
-//   =============================== */
-//   const pendingOrders = processedOrders.filter((o) => o.status === "pending");
-//   const confirmedOrders = processedOrders.filter((o) => o.status === "confirmed");
-//   const completedOrders = processedOrders.filter((o) =>
-//     ["completed", "cancelled"].includes(o.status)
-//   );
-
-//   /* ===============================
-//      STATISTICS
-//   =============================== */
-//   const stats = {
-//     total: processedOrders.length,
-//     pending: processedOrders.filter((o) => o.status === "pending").length,
-//     confirmed: processedOrders.filter((o) => o.status === "confirmed").length,
-//     completed: processedOrders.filter((o) => o.status === "completed").length,
-//     revenue: processedOrders
-//       .filter((o) => o.status === "completed")
-//       .reduce((sum, o) => sum + (o.grandTotal || 0), 0),
-//   };
-
-//   /* ===============================
-//      CLEAR FILTERS
-//   =============================== */
-//   const clearFilters = () => {
-//     setSearchQuery("");
-//     setSortBy("newest");
-//     setFilterStatus("all");
-//     setDateFilter("all");
-//   };
-
-//   if (loading) {
-//     return (
-//       <div className="min-h-screen bg-black flex items-center justify-center">
-//         <div className="text-center">
-//           <div className="w-12 h-12 border-4 border-gray-800 border-t-cyan-500 rounded-full animate-spin mx-auto mb-4"></div>
-//           <p className="text-gray-400 text-sm">Loading orders...</p>
-//         </div>
-//       </div>
-//     );
-//   }
-
-//   const hasActiveFilters =
-//     searchQuery ||
-//     sortBy !== "newest" ||
-//     filterStatus !== "all" ||
-//     dateFilter !== "all";
-
-//   return (
-//     <div className="min-h-screen bg-black text-white flex flex-col">
-//       {/* HEADER */}
-//       <header className="border-b border-gray-800 bg-black sticky top-0 z-10 shadow-lg">
-//         <div className="px-6 py-4">
-//           {/* Title */}
-//           <div className="flex items-center justify-between mb-4">
-//             <div>
-//               <h1 className="text-3xl font-bold">
-//                 Order <span className="text-cyan-400">Management</span>
-//               </h1>
-//               {owner && (
-//                 <p className="text-gray-400 text-sm mt-1">
-//                   {owner.restaurantName || owner.username}
-//                 </p>
-//               )}
-//             </div>
-
-//             <div className="flex items-center gap-3">
-//               {/* Connection Status */}
-//               <div
-//                 className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium ${
-//                   connectionStatus === "connected"
-//                     ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20"
-//                     : connectionStatus === "disconnected"
-//                     ? "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
-//                     : "bg-red-500/10 text-red-400 border border-red-500/20"
-//                 }`}
-//               >
-//                 <span
-//                   className={`w-2 h-2 rounded-full ${
-//                     connectionStatus === "connected"
-//                       ? "bg-cyan-400 animate-pulse"
-//                       : connectionStatus === "disconnected"
-//                       ? "bg-yellow-400"
-//                       : "bg-red-400"
-//                   }`}
-//                 ></span>
-//                 {connectionStatus === "connected"
-//                   ? "Live"
-//                   : connectionStatus === "disconnected"
-//                   ? "Disconnected"
-//                   : "Error"}
-//               </div>
-
-//               {connectionStatus !== "connected" && (
-//                 <button
-//                   onClick={reconnect}
-//                   className="p-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition-colors text-xs"
-//                   title="Reconnect"
-//                 >
-//                   <AlertCircle className="w-4 h-4" />
-//                 </button>
-//               )}
-
-//               <button
-//                 onClick={() => setShowFilters(!showFilters)}
-//                 className={`p-2 rounded-lg transition-colors ${
-//                   showFilters
-//                     ? "bg-cyan-500 text-black"
-//                     : "bg-gray-800 hover:bg-gray-700 text-gray-400"
-//                 }`}
-//               >
-//                 <SlidersHorizontal className="w-4 h-4" />
-//               </button>
-
-//               <button
-//                 onClick={handleRefresh}
-//                 disabled={refreshing}
-//                 className="p-2 bg-gray-800 hover:bg-gray-700 text-gray-400 rounded-lg transition-colors disabled:opacity-50"
-//               >
-//                 <RefreshCw
-//                   className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`}
-//                 />
-//               </button>
-//             </div>
-//           </div>
-
-//           {/* Stats */}
-//           <div className="flex items-center gap-6 text-sm mb-4 flex-wrap">
-//             <div className="flex items-center gap-2">
-//               <span className="text-gray-400">Total:</span>
-//               <span className="text-white font-semibold">{stats.total}</span>
-//             </div>
-//             <div className="w-px h-4 bg-gray-800"></div>
-//             <div className="flex items-center gap-2">
-//               <span className="text-gray-400">Pending:</span>
-//               <span className="text-cyan-400 font-semibold">
-//                 {stats.pending}
-//               </span>
-//             </div>
-//             <div className="w-px h-4 bg-gray-800"></div>
-//             <div className="flex items-center gap-2">
-//               <span className="text-gray-400">Confirmed:</span>
-//               <span className="text-cyan-400 font-semibold">
-//                 {stats.confirmed}
-//               </span>
-//             </div>
-//             <div className="w-px h-4 bg-gray-800"></div>
-//             <div className="flex items-center gap-2">
-//               <span className="text-gray-400">Completed:</span>
-//               <span className="text-green-400 font-semibold">
-//                 {stats.completed}
-//               </span>
-//             </div>
-//             <div className="w-px h-4 bg-gray-800"></div>
-//             <div className="flex items-center gap-2">
-//               <TrendingUp className="w-4 h-4 text-cyan-400" />
-//               <span className="text-gray-400">Revenue:</span>
-//               <span className="text-cyan-400 font-semibold">
-//                 ₹{stats.revenue.toFixed(2)}
-//               </span>
-//             </div>
-//           </div>
-
-//           {/* Date Filters */}
-//           <div className="flex items-center gap-2 mb-4 overflow-x-auto">
-//             <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
-//             <div className="flex gap-2">
-//               {[
-//                 { value: "all", label: "All Time" },
-//                 { value: "today", label: "Today" },
-//                 { value: "7days", label: "Last 7 Days" },
-//                 { value: "30days", label: "Last 30 Days" },
-//               ].map((option) => (
-//                 <button
-//                   key={option.value}
-//                   onClick={() => setDateFilter(option.value)}
-//                   className={`px-3 py-1.5 text-sm rounded-lg font-medium transition-colors whitespace-nowrap ${
-//                     dateFilter === option.value
-//                       ? "bg-cyan-500 text-black"
-//                       : "bg-gray-900 hover:bg-gray-800 text-gray-400 border border-gray-800"
-//                   }`}
-//                 >
-//                   {option.label}
-//                 </button>
-//               ))}
-//             </div>
-//           </div>
-
-//           {/* Search */}
-//           <div className="space-y-3">
-//             <div className="relative">
-//               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-//               <input
-//                 type="text"
-//                 placeholder="Search orders..."
-//                 value={searchQuery}
-//                 onChange={(e) => setSearchQuery(e.target.value)}
-//                 className="w-full pl-10 pr-10 py-3 bg-gray-900 border border-gray-800 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-//               />
-//               {searchQuery && (
-//                 <button
-//                   onClick={() => setSearchQuery("")}
-//                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
-//                 >
-//                   <X className="w-4 h-4" />
-//                 </button>
-//               )}
-//             </div>
-
-//             {showFilters && (
-//               <div className="flex gap-3">
-//                 <select
-//                   value={sortBy}
-//                   onChange={(e) => setSortBy(e.target.value)}
-//                   className="flex-1 px-3 py-3 bg-gray-900 border border-gray-800 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-//                 >
-//                   <option value="newest">Newest First</option>
-//                   <option value="oldest">Oldest First</option>
-//                   <option value="table">By Table</option>
-//                   <option value="status">By Status</option>
-//                 </select>
-
-//                 <select
-//                   value={filterStatus}
-//                   onChange={(e) => setFilterStatus(e.target.value)}
-//                   className="flex-1 px-3 py-3 bg-gray-900 border border-gray-800 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-//                 >
-//                   <option value="all">All Orders</option>
-//                   <option value="pending">Pending</option>
-//                   <option value="confirmed">Confirmed</option>
-//                   <option value="completed">Completed</option>
-//                   <option value="cancelled">Cancelled</option>
-//                 </select>
-//               </div>
-//             )}
-
-//             {hasActiveFilters && (
-//               <div className="flex items-center justify-between text-xs text-gray-400 bg-gray-900 rounded-lg px-4 py-2.5 border border-gray-800">
-//                 <span>
-//                   Showing {processedOrders.length} of {orders.length} orders
-//                 </span>
-//                 <button
-//                   onClick={clearFilters}
-//                   className="text-cyan-400 hover:text-cyan-300 text-xs font-semibold ml-4"
-//                 >
-//                   Clear Filters
-//                 </button>
-//               </div>
-//             )}
-//           </div>
-//         </div>
-//       </header>
-
-//       {/* MAIN CONTENT */}
-//       <main className="flex-1 overflow-hidden bg-black">
-//         <div className="h-full grid grid-cols-1 md:grid-cols-3 gap-4 p-4">
-//           <OrderColumn
-//             title="Pending Orders"
-//             count={pendingOrders.length}
-//             orders={pendingOrders}
-//             onUpdate={handleUpdate}
-//             color="cyan"
-//           />
-
-//           <OrderColumn
-//             title="Confirmed"
-//             count={confirmedOrders.length}
-//             orders={confirmedOrders}
-//             onUpdate={handleUpdate}
-//             color="cyan"
-//           />
-
-//           <OrderColumn
-//             title="Completed"
-//             count={completedOrders.length}
-//             orders={completedOrders}
-//             onUpdate={handleUpdate}
-//             color="green"
-//           />
-//         </div>
-//       </main>
-//     </div>
-//   );
-// }
-
-
-
-
-
-
-
-
-
-
-
-
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   RefreshCw,
   Search,
-  SlidersHorizontal,
   X,
-  Calendar,
-  TrendingUp,
-  AlertCircle,
   ArrowLeft,
+  Receipt,
+  Clock,
+  CheckCircle,
+  TrendingUp,
+  Filter,
+  ChefHat,
 } from "lucide-react";
 
 import { fetchOrders, updateOrderStatus } from "../../api/orderApi";
 import useLiveOrders from "../../hooks/useLiveOrders";
-import OrderCard from "../../components/orders/OrderCard";
 import { saveOrders, loadOrders } from "../../utils/orderStorage";
 import { useAuth } from "../../context/AuthContext";
-import OrderColumn from "../../components/orders/OrderColumn";
+
+// Import components
+import OrderCard from "../../components/orders/OrderCard";
+import Toast from "../../components/Billing/Toast";
+import ConfirmDialog from "../../components/orders/ConfirmDialog";
 
 export default function OrderPage() {
   const { username } = useParams();
@@ -596,14 +33,26 @@ export default function OrderPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const updatingRef = useRef(false);
-  const updatingOrderIdRef = useRef(null); // 🔥 Track which specific order is being updated
+  const updatingOrderIdRef = useRef(null);
   const [connectionStatus, setConnectionStatus] = useState("connecting");
 
   // Filters
-  const [sortBy, setSortBy] = useState("newest");
-  const [filterStatus, setFilterStatus] = useState("all");
-  const [dateFilter, setDateFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("today");
   const [showFilters, setShowFilters] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  // Toast & Confirm Dialog
+  const [toast, setToast] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState(null);
+
+  const showToast = useCallback((message, type = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  }, []);
+
+  const showConfirm = useCallback((title, message, onConfirm, type = "warning") => {
+    setConfirmDialog({ title, message, onConfirm, type });
+  }, []);
 
   /* ===============================
      FETCH ORDERS
@@ -613,14 +62,12 @@ export default function OrderPage() {
     if (!usernameToFetch) return;
 
     try {
-      // Load from cache first
       const cachedOrders = loadOrders();
       if (cachedOrders && Array.isArray(cachedOrders)) {
         setOrders(cachedOrders);
         setLoading(false);
       }
 
-      // Fetch from server
       const res = await fetchOrders(usernameToFetch);
       const fetchedOrders = Array.isArray(res.data) ? res.data : [];
       setOrders(fetchedOrders);
@@ -643,17 +90,9 @@ export default function OrderPage() {
      LIVE SOCKET UPDATES
   =============================== */
   const handleOrderEvent = useCallback((type, order) => {
-    // 🔥 FIX: Only skip updates for the specific order being manually updated
-    // AND only for status changes (not for billed field updates)
     if (updatingRef.current && updatingOrderIdRef.current === order._id) {
-      console.log(`⏭️ Skipping socket update for order ${order._id?.slice(-6)} during manual update`);
       return;
     }
-
-    console.log(`📡 Socket event: ${type}`, order._id?.slice(-6), {
-      billed: order.billed,
-      billId: order.billId
-    });
 
     setOrders((prev) => {
       const prevArray = Array.isArray(prev) ? prev : [];
@@ -664,11 +103,11 @@ export default function OrderPage() {
           return prevArray;
         }
         updated = [order, ...prevArray];
+        showToast("New order received", "info");
       } else if (type === "updated" || type === "replaced") {
-        // 🔥 FIX: Properly merge the updated order with existing data
         updated = prevArray.map((o) => {
           if (o._id === order._id) {
-            return { ...o, ...order }; // Merge to preserve all fields including 'billed'
+            return { ...o, ...order };
           }
           return o;
         });
@@ -681,14 +120,13 @@ export default function OrderPage() {
       saveOrders(updated);
       return updated;
     });
-  }, []);
+  }, [showToast]);
 
-  const { socket, reconnect, isConnected } = useLiveOrders(
+  const { socket } = useLiveOrders(
     username || owner?.username,
     handleOrderEvent
   );
 
-  // Update connection status
   useEffect(() => {
     if (socket) {
       const handleConnect = () => setConnectionStatus("connected");
@@ -722,12 +160,23 @@ export default function OrderPage() {
      UPDATE ORDER STATUS
   =============================== */
   const handleUpdate = useCallback(
-    async (id, status) => {
+    async (id, status, skipConfirm = false) => {
       const usernameToUpdate = username || owner?.username;
       if (!usernameToUpdate) return;
 
+      // Show confirmation only for reject action
+      if (!skipConfirm && status === "cancelled") {
+        showConfirm(
+          "Reject Order",
+          "Are you sure you want to reject this order?",
+          () => handleUpdate(id, status, true),
+          "danger"
+        );
+        return;
+      }
+
       updatingRef.current = true;
-      updatingOrderIdRef.current = id; // 🔥 Track specific order
+      updatingOrderIdRef.current = id;
       let previousOrders = null;
 
       setOrders((prev) => {
@@ -744,27 +193,36 @@ export default function OrderPage() {
 
       try {
         await updateOrderStatus(usernameToUpdate, id, status);
+        
+        const statusMessages = {
+          confirmed: "Order accepted",
+          completed: "Order completed",
+          cancelled: "Order rejected"
+        };
+        
+        showToast(statusMessages[status] || `Order ${status}`, "success");
+        
         setTimeout(() => {
           updatingRef.current = false;
-          updatingOrderIdRef.current = null; // 🔥 Clear tracked order
+          updatingOrderIdRef.current = null;
         }, 1500);
       } catch (error) {
         console.error("Failed to update order:", error);
         updatingRef.current = false;
-        updatingOrderIdRef.current = null; // 🔥 Clear tracked order
+        updatingOrderIdRef.current = null;
 
         if (previousOrders) {
           setOrders(previousOrders);
           saveOrders(previousOrders);
         }
-        alert("Failed to update order. Please try again.");
+        showToast("Failed to update order", "error");
       }
     },
-    [username, owner]
+    [username, owner, showToast, showConfirm]
   );
 
   /* ===============================
-     DATE FILTER
+     FILTER BY DATE
   =============================== */
   const filterByDate = useCallback(
     (order) => {
@@ -780,12 +238,12 @@ export default function OrderPage() {
             orderDate.getMonth() === now.getMonth() &&
             orderDate.getFullYear() === now.getFullYear()
           );
-        case "7days": {
+        case "week": {
           const diffTime = Math.abs(now - orderDate);
           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
           return diffDays <= 7;
         }
-        case "30days": {
+        case "month": {
           const diffTime = Math.abs(now - orderDate);
           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
           return diffDays <= 30;
@@ -798,13 +256,17 @@ export default function OrderPage() {
   );
 
   /* ===============================
-     FILTER & SEARCH & SORT
+     PROCESS ORDERS
   =============================== */
   const processedOrders = useMemo(() => {
     const ordersArray = Array.isArray(orders) ? orders : [];
     let filtered = [...ordersArray];
 
     filtered = filtered.filter(filterByDate);
+
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((o) => o.status === statusFilter);
+    }
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -819,337 +281,370 @@ export default function OrderPage() {
       });
     }
 
-    if (filterStatus !== "all") {
-      filtered = filtered.filter((order) => {
-        if (filterStatus === "pending") return order.status === "pending";
-        if (filterStatus === "confirmed") return order.status === "confirmed";
-        if (filterStatus === "completed") return order.status === "completed";
-        if (filterStatus === "cancelled") return order.status === "cancelled";
-        return true;
-      });
-    }
-
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case "newest":
-          return new Date(b.createdAt) - new Date(a.createdAt);
-        case "oldest":
-          return new Date(a.createdAt) - new Date(b.createdAt);
-        case "table":
-          return (a.tableNumber || 0) - (b.tableNumber || 0);
-        case "status": {
-          const statusOrder = {
-            pending: 0,
-            confirmed: 1,
-            completed: 2,
-            cancelled: 3,
-          };
-          return (statusOrder[a.status] || 0) - (statusOrder[b.status] || 0);
-        }
-        default:
-          return 0;
-      }
-    });
+    filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
     return filtered;
-  }, [orders, searchQuery, sortBy, filterStatus, filterByDate]);
+  }, [orders, searchQuery, statusFilter, filterByDate]);
 
   /* ===============================
-     STATUS GROUPING
+     GROUP BY STATUS
   =============================== */
-  const pendingOrders = processedOrders.filter((o) => o.status === "pending");
-  const confirmedOrders = processedOrders.filter((o) => o.status === "confirmed");
-  const completedOrders = processedOrders.filter((o) =>
-    ["completed", "cancelled"].includes(o.status)
-  );
+  const { pendingOrders, preparingOrders, completedOrders } = useMemo(() => {
+    return {
+      pendingOrders: processedOrders.filter((o) => o.status === "pending"),
+      preparingOrders: processedOrders.filter((o) => o.status === "confirmed"),
+      completedOrders: processedOrders.filter((o) =>
+        ["completed", "cancelled"].includes(o.status)
+      ),
+    };
+  }, [processedOrders]);
 
   /* ===============================
      STATISTICS
   =============================== */
-  const stats = {
-    total: processedOrders.length,
-    pending: processedOrders.filter((o) => o.status === "pending").length,
-    confirmed: processedOrders.filter((o) => o.status === "confirmed").length,
-    completed: processedOrders.filter((o) => o.status === "completed").length,
-    revenue: processedOrders
-      .filter((o) => o.status === "completed")
-      .reduce((sum, o) => sum + (o.grandTotal || 0), 0),
-  };
+  const stats = useMemo(() => {
+    return {
+      pending: pendingOrders.length,
+      preparing: preparingOrders.length,
+      completed: processedOrders.filter((o) => o.status === "completed").length,
+      totalRevenue: processedOrders
+        .filter((o) => o.status === "completed")
+        .reduce((sum, o) => sum + (o.grandTotal || 0), 0),
+    };
+  }, [processedOrders, pendingOrders, preparingOrders]);
 
   /* ===============================
-     CLEAR FILTERS
+     KEYBOARD SHORTCUTS
   =============================== */
-  const clearFilters = () => {
-    setSearchQuery("");
-    setSortBy("newest");
-    setFilterStatus("all");
-    setDateFilter("all");
-  };
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "r") {
+        e.preventDefault();
+        handleRefresh();
+      }
+      if (e.key === "Escape" && confirmDialog) {
+        setConfirmDialog(null);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
+  }, [handleRefresh, confirmDialog]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-gray-800 border-t-cyan-500 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-400 text-sm">Loading orders...</p>
+          <div className="w-16 h-16 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Loading orders...</p>
         </div>
       </div>
     );
   }
 
-  const hasActiveFilters =
-    searchQuery ||
-    sortBy !== "newest" ||
-    filterStatus !== "all" ||
-    dateFilter !== "all";
-
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col">
+    <div className="h-screen flex flex-col bg-gray-50">
       {/* HEADER */}
-      <header className="border-b border-gray-800 bg-black sticky top-0 z-10 shadow-lg">
-        <div className="px-6 py-4">
-          {/* Title with Back Button */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => navigate(-1)}
-                className="p-2  hover:bg-gray-700 text-gray-400 hover:text-white rounded-lg transition-colors"
-                title="Go back"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </button>
+      <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate(-1)}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors group"
+              title="Go back"
+            >
+              <ArrowLeft className="w-5 h-5 text-gray-600 group-hover:text-gray-900" />
+            </button>
+            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+              <Receipt className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">Orders</h1>
+              <p className="text-xs text-gray-500">{owner?.restaurantName}</p>
+            </div>
+          </div>
+
+          {/* QUICK STATS */}
+          <div className="flex items-center gap-6 ml-8">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-orange-50 rounded flex items-center justify-center">
+                <Clock className="w-4 h-4 text-orange-600" />
+              </div>
               <div>
-                <h1 className="text-3xl font-bold">
-                  Order <span className="text-cyan-400">Management</span>
-                </h1>
-                {owner && (
-                  <p className="text-gray-400 text-sm mt-1">
-                    {owner.restaurantName || owner.username}
-                  </p>
-                )}
+                <p className="text-xs text-gray-500">Pending</p>
+                <p className="text-sm font-bold text-gray-900">
+                  {stats.pending}
+                </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              {/* Connection Status */}
-              <div
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium ${
-                  connectionStatus === "connected"
-                    ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20"
-                    : connectionStatus === "disconnected"
-                    ? "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"
-                    : "bg-red-500/10 text-red-400 border border-red-500/20"
-                }`}
-              >
-                <span
-                  className={`w-2 h-2 rounded-full ${
-                    connectionStatus === "connected"
-                      ? "bg-cyan-400 animate-pulse"
-                      : connectionStatus === "disconnected"
-                      ? "bg-yellow-400"
-                      : "bg-red-400"
-                  }`}
-                ></span>
-                {connectionStatus === "connected"
-                  ? "Live"
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-blue-50 rounded flex items-center justify-center">
+                <ChefHat className="w-4 h-4 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Preparing</p>
+                <p className="text-sm font-bold text-gray-900">
+                  {stats.preparing}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-green-50 rounded flex items-center justify-center">
+                <CheckCircle className="w-4 h-4 text-green-600" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Completed</p>
+                <p className="text-sm font-bold text-gray-900">
+                  {stats.completed}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-green-50 rounded flex items-center justify-center">
+                <TrendingUp className="w-4 h-4 text-green-600" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Revenue</p>
+                <p className="text-sm font-bold text-green-600">
+                  ₹{stats.totalRevenue.toFixed(0)}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          {/* CONNECTION STATUS */}
+          <div
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium ${
+              connectionStatus === "connected"
+                ? "bg-green-50 text-green-700 border border-green-200"
+                : connectionStatus === "disconnected"
+                ? "bg-yellow-50 text-yellow-700 border border-yellow-200"
+                : "bg-red-50 text-red-700 border border-red-200"
+            }`}
+          >
+            <span
+              className={`w-2 h-2 rounded-full ${
+                connectionStatus === "connected"
+                  ? "bg-green-500 animate-pulse"
                   : connectionStatus === "disconnected"
-                  ? "Disconnected"
-                  : "Error"}
-              </div>
-
-              {connectionStatus !== "connected" && (
-                <button
-                  onClick={reconnect}
-                  className="p-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition-colors text-xs"
-                  title="Reconnect"
-                >
-                  <AlertCircle className="w-4 h-4" />
-                </button>
-              )}
-
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className={`p-2 rounded-lg transition-colors ${
-                  showFilters
-                    ? "bg-cyan-500 text-black"
-                    : "bg-gray-800 hover:bg-gray-700 text-gray-400"
-                }`}
-              >
-                <SlidersHorizontal className="w-4 h-4" />
-              </button>
-
-              <button
-                onClick={handleRefresh}
-                disabled={refreshing}
-                className="p-2 bg-gray-800 hover:bg-gray-700 text-gray-400 rounded-lg transition-colors disabled:opacity-50"
-              >
-                <RefreshCw
-                  className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`}
-                />
-              </button>
-            </div>
+                  ? "bg-yellow-500"
+                  : "bg-red-500"
+              }`}
+            />
+            {connectionStatus === "connected"
+              ? "Live"
+              : connectionStatus === "disconnected"
+              ? "Offline"
+              : "Error"}
           </div>
 
-          {/* Stats */}
-          <div className="flex items-center gap-6 text-sm mb-4 flex-wrap">
-            <div className="flex items-center gap-2">
-              <span className="text-gray-400">Total:</span>
-              <span className="text-white font-semibold">{stats.total}</span>
-            </div>
-            <div className="w-px h-4 bg-gray-800"></div>
-            <div className="flex items-center gap-2">
-              <span className="text-gray-400">Pending:</span>
-              <span className="text-cyan-400 font-semibold">
-                {stats.pending}
-              </span>
-            </div>
-            <div className="w-px h-4 bg-gray-800"></div>
-            <div className="flex items-center gap-2">
-              <span className="text-gray-400">Confirmed:</span>
-              <span className="text-cyan-400 font-semibold">
-                {stats.confirmed}
-              </span>
-            </div>
-            <div className="w-px h-4 bg-gray-800"></div>
-            <div className="flex items-center gap-2">
-              <span className="text-gray-400">Completed:</span>
-              <span className="text-green-400 font-semibold">
-                {stats.completed}
-              </span>
-            </div>
-            <div className="w-px h-4 bg-gray-800"></div>
-            <div className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-cyan-400" />
-              <span className="text-gray-400">Revenue:</span>
-              <span className="text-cyan-400 font-semibold">
-                ₹{stats.revenue.toFixed(2)}
-              </span>
-            </div>
-          </div>
+          {/* DATE FILTER */}
+          <select
+            value={dateFilter}
+            onChange={(e) => setDateFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="today">Today</option>
+            <option value="week">Last 7 Days</option>
+            <option value="month">Last 30 Days</option>
+            <option value="all">All Time</option>
+          </select>
 
-          {/* Date Filters */}
-          <div className="flex items-center gap-2 mb-4 overflow-x-auto">
-            <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
-            <div className="flex gap-2">
-              {[
-                { value: "all", label: "All Time" },
-                { value: "today", label: "Today" },
-                { value: "7days", label: "Last 7 Days" },
-                { value: "30days", label: "Last 30 Days" },
-              ].map((option) => (
-                <button
-                  key={option.value}
-                  onClick={() => setDateFilter(option.value)}
-                  className={`px-3 py-1.5 text-sm rounded-lg font-medium transition-colors whitespace-nowrap ${
-                    dateFilter === option.value
-                      ? "bg-cyan-500 text-black"
-                      : "bg-gray-900 hover:bg-gray-800 text-gray-400 border border-gray-800"
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </div>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            title="Refresh"
+          >
+            <RefreshCw
+              className={`w-5 h-5 text-gray-600 ${
+                refreshing ? "animate-spin" : ""
+              }`}
+            />
+          </button>
 
-          {/* Search */}
-          <div className="space-y-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`p-2 rounded-lg transition-colors ${
+              showFilters
+                ? "bg-blue-100 text-blue-600"
+                : "hover:bg-gray-100 text-gray-600"
+            }`}
+            title="Filters"
+          >
+            <Filter className="w-5 h-5" />
+          </button>
+        </div>
+      </header>
+
+      {/* FILTERS BAR */}
+      {showFilters && (
+        <div className="bg-white border-b border-gray-200 px-6 py-3">
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search orders..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-10 py-3 bg-gray-900 border border-gray-800 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   <X className="w-4 h-4" />
                 </button>
               )}
             </div>
 
-            {showFilters && (
-              <div className="flex gap-3">
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="flex-1 px-3 py-3 bg-gray-900 border border-gray-800 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                >
-                  <option value="newest">Newest First</option>
-                  <option value="oldest">Oldest First</option>
-                  <option value="table">By Table</option>
-                  <option value="status">By Status</option>
-                </select>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="confirmed">Preparing</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
 
-                <select
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                  className="flex-1 px-3 py-3 bg-gray-900 border border-gray-800 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                >
-                  <option value="all">All Orders</option>
-                  <option value="pending">Pending</option>
-                  <option value="confirmed">Confirmed</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
-              </div>
-            )}
-
-            {hasActiveFilters && (
-              <div className="flex items-center justify-between text-xs text-gray-400 bg-gray-900 rounded-lg px-4 py-2.5 border border-gray-800">
-                <span>
-                  Showing {processedOrders.length} of {orders.length} orders
-                </span>
-                <button
-                  onClick={clearFilters}
-                  className="text-cyan-400 hover:text-cyan-300 text-xs font-semibold ml-4"
-                >
-                  Clear Filters
-                </button>
-              </div>
+            {(searchQuery || statusFilter !== "all") && (
+              <button
+                onClick={() => {
+                  setSearchQuery("");
+                  setStatusFilter("all");
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+              >
+                Clear Filters
+              </button>
             )}
           </div>
         </div>
-      </header>
+      )}
 
       {/* MAIN CONTENT */}
-   
-{/* MAIN CONTENT */}
-<main className="flex-1 bg-black p-4 overflow-hidden">
-  <div className="h-full grid grid-cols-1 md:grid-cols-3 gap-4">
-    <OrderColumn
-      title="Pending Orders"
-      count={pendingOrders.length}
-      orders={pendingOrders}
-      onUpdate={handleUpdate}
-      color="cyan"
-      allOrders={processedOrders}
-    />
+      <div className="flex-1 flex overflow-hidden">
+        {/* PENDING COLUMN */}
+        <OrderColumn
+          title="Pending"
+          icon={Clock}
+          iconColor="text-orange-600"
+          iconBg="bg-orange-50"
+          count={pendingOrders.length}
+          orders={pendingOrders}
+          onUpdate={handleUpdate}
+          allOrders={processedOrders}
+        />
 
-    <OrderColumn
-      title="Confirmed"
-      count={confirmedOrders.length}
-      orders={confirmedOrders}
-      onUpdate={handleUpdate}
-      color="cyan"
-      allOrders={processedOrders}
-    />
+        {/* PREPARING COLUMN */}
+        <OrderColumn
+          title="Preparing"
+          icon={ChefHat}
+          iconColor="text-blue-600"
+          iconBg="bg-blue-50"
+          count={preparingOrders.length}
+          orders={preparingOrders}
+          onUpdate={handleUpdate}
+          allOrders={processedOrders}
+        />
 
-    <OrderColumn
-      title="Completed"
-      count={completedOrders.length}
-      orders={completedOrders}
-      onUpdate={handleUpdate}
-      color="green"
-      allOrders={processedOrders}
-    />
-  </div>
-</main>
+        {/* COMPLETED COLUMN */}
+        <OrderColumn
+          title="Completed"
+          icon={CheckCircle}
+          iconColor="text-green-600"
+          iconBg="bg-green-50"
+          count={completedOrders.length}
+          orders={completedOrders}
+          onUpdate={handleUpdate}
+          allOrders={processedOrders}
+        />
+      </div>
+
+      {/* TOAST */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+
+      {/* CONFIRM DIALOG */}
+      {confirmDialog && (
+        <ConfirmDialog
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          type={confirmDialog.type}
+          onConfirm={() => {
+            confirmDialog.onConfirm();
+            setConfirmDialog(null);
+          }}
+          onCancel={() => setConfirmDialog(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ===============================
+   ORDER COLUMN COMPONENT
+=============================== */
+function OrderColumn({
+  title,
+  icon: Icon,
+  iconColor,
+  iconBg,
+  count,
+  orders,
+  onUpdate,
+  allOrders,
+}) {
+  return (
+    <div className="flex-1 bg-white border-r border-gray-200 last:border-r-0 flex flex-col">
+      <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className={`w-8 h-8 ${iconBg} rounded flex items-center justify-center`}>
+              <Icon className={`w-4 h-4 ${iconColor}`} />
+            </div>
+            <h2 className="font-semibold text-gray-900">{title}</h2>
+          </div>
+          <span className={`px-2 py-0.5 ${iconBg} ${iconColor} text-xs font-bold rounded-full`}>
+            {count}
+          </span>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-3">
+        {orders.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-center p-6">
+            <Icon className="w-12 h-12 text-gray-300 mb-3" />
+            <p className="text-sm text-gray-500">No {title.toLowerCase()} orders</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {orders.map((order) => (
+              <OrderCard
+                key={order._id}
+                order={order}
+                onUpdate={onUpdate}
+                allOrders={allOrders}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
