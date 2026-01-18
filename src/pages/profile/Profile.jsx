@@ -751,6 +751,7 @@ import api from "../../services/api";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 
+
 import {
   User,
   Mail,
@@ -870,7 +871,7 @@ export default function Profile() {
       <div className="mx-auto max-w-6xl space-y-8 relative z-10">
 
         {/* Back Button */}
-        <motion.div 
+        {/* <motion.div 
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
         >
@@ -881,7 +882,53 @@ export default function Profile() {
             <ArrowLeft size={20} />
             Back
           </button>
-        </motion.div>
+        </motion.div> */}
+
+
+        {/* Back Button */}
+{/* <motion.div 
+  initial={{ opacity: 0, x: -20 }}
+  animate={{ opacity: 1, x: 0 }}
+>
+  <button
+    onClick={() => {
+      // Check if there's history to go back to
+      if (window.history.length > 1) {
+        navigate(-1);
+      } else {
+        // If no history, go to dashboard or home
+        if (username) {
+          navigate(`/$owner.username}/dashboard`, { replace: true });
+        } else {
+          navigate("/", { replace: true });
+        }
+      }
+    }}
+    className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium"
+  >
+    <ArrowLeft size={20} />
+    Back
+  </button>
+</motion.div> */}
+
+<motion.div 
+  initial={{ opacity: 0, x: -20 }}
+  animate={{ opacity: 1, x: 0 }}
+>
+  <button
+    onClick={() => {
+      if (user?.username) {
+        navigate(`/${user.username}/dashboard`, { replace: true });
+      } else {
+        navigate("/", { replace: true });
+      }
+    }}
+    className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium"
+  >
+    <ArrowLeft size={20} />
+    Back to Dashboard
+  </button>
+</motion.div>
 
         {/* ================= HEADER ================= */}
         <motion.section 
