@@ -17,6 +17,7 @@ import { fetchOrders, updateOrderStatus } from "../../api/orderApi";
 import useLiveOrders from "../../hooks/useLiveOrders";
 import { saveOrders, loadOrders } from "../../utils/orderStorage";
 import { useAuth } from "../../context/AuthContext";
+import offlineDB from "../../services/offlineDB";
 
 // Import components
 import OrderCard from "../../components/orders/OrderCard";
@@ -66,12 +67,18 @@ export default function OrderPage() {
       if (cachedOrders && Array.isArray(cachedOrders)) {
         setOrders(cachedOrders);
         setLoading(false);
+        
+        // 🔥 CRITICAL: Save to IndexedDB
+        await offlineDB.saveOrders(cachedOrders);
       }
 
       const res = await fetchOrders(usernameToFetch);
       const fetchedOrders = Array.isArray(res.data) ? res.data : [];
       setOrders(fetchedOrders);
       saveOrders(fetchedOrders);
+      
+      // 🔥 CRITICAL: Save to IndexedDB
+      await offlineDB.saveOrders(fetchedOrders);
     } catch (error) {
       console.error("Failed to fetch orders:", error);
       if (!orders.length) {
@@ -85,6 +92,55 @@ export default function OrderPage() {
   useEffect(() => {
     loadOrdersData();
   }, [username, owner?.username]);
+
+  /* ===============================
+     🔥 CRITICAL: BILL GENERATION HANDLER (NO RELOAD)
+  =============================== */
+  const handleBillGenerated = useCallback((billData, affectedOrderIds) => {
+    console.log("📋 Bill generated:", billData.billNumber);
+    console.log("📦 Affected orders:", affectedOrderIds);
+
+    // 🔥 Update orders state immediately with bill info
+    setOrders((prevOrders) => {
+      return prevOrders.map((order) => {
+        if (affectedOrderIds.includes(order._id)) {
+          const updatedOrder = {
+            ...order,
+            billed: true,
+            billedAt: new Date().toISOString(),
+            billId: billData._id,
+            billNumber: billData.billNumber,
+          };
+          
+          // 🔥 CRITICAL: Save to IndexedDB immediately
+          offlineDB.saveOrder(updatedOrder).catch(err => 
+            console.error('Failed to save order to IndexedDB:', err)
+          );
+          
+          return updatedOrder;
+        }
+        return order;
+      });
+    });
+
+    // Save to cache
+    const updatedOrders = orders.map((order) => {
+      if (affectedOrderIds.includes(order._id)) {
+        return {
+          ...order,
+          billed: true,
+          billedAt: new Date().toISOString(),
+          billId: billData._id,
+          billNumber: billData.billNumber,
+        };
+      }
+      return order;
+    });
+    saveOrders(updatedOrders);
+
+    // Show success toast
+    showToast(`Bill ${billData.billNumber} generated successfully`, "success");
+  }, [orders, showToast]);
 
   /* ===============================
      LIVE SOCKET UPDATES
@@ -104,15 +160,27 @@ export default function OrderPage() {
         }
         updated = [order, ...prevArray];
         showToast("New order received", "info");
+        
+        // 🔥 Save new order to IndexedDB
+        offlineDB.saveOrder(order).catch(err => console.warn('Failed to save order:', err));
       } else if (type === "updated" || type === "replaced") {
         updated = prevArray.map((o) => {
           if (o._id === order._id) {
-            return { ...o, ...order };
+            // 🔥 CRITICAL: Merge socket update with existing data
+            const merged = { ...o, ...order };
+            
+            // 🔥 Save updated order to IndexedDB
+            offlineDB.saveOrder(merged).catch(err => console.warn('Failed to save order:', err));
+            
+            return merged;
           }
           return o;
         });
       } else if (type === "deleted") {
         updated = prevArray.filter((o) => o._id !== order);
+        
+        // 🔥 Delete from IndexedDB
+        offlineDB.deleteOrder(order).catch(err => console.warn('Failed to delete order:', err));
       } else {
         return prevArray;
       }
@@ -179,6 +247,7 @@ export default function OrderPage() {
       updatingOrderIdRef.current = id;
       let previousOrders = null;
 
+      // 🔥 Optimistic update
       setOrders((prev) => {
         const prevArray = Array.isArray(prev) ? prev : [];
         previousOrders = [...prevArray];
@@ -211,6 +280,7 @@ export default function OrderPage() {
         updatingRef.current = false;
         updatingOrderIdRef.current = null;
 
+        // 🔥 Rollback on error
         if (previousOrders) {
           setOrders(previousOrders);
           saveOrders(previousOrders);
@@ -544,6 +614,7 @@ export default function OrderPage() {
           orders={pendingOrders}
           onUpdate={handleUpdate}
           allOrders={processedOrders}
+          onBillGenerated={handleBillGenerated}
         />
 
         {/* PREPARING COLUMN */}
@@ -556,6 +627,7 @@ export default function OrderPage() {
           orders={preparingOrders}
           onUpdate={handleUpdate}
           allOrders={processedOrders}
+          onBillGenerated={handleBillGenerated}
         />
 
         {/* COMPLETED COLUMN */}
@@ -568,6 +640,7 @@ export default function OrderPage() {
           orders={completedOrders}
           onUpdate={handleUpdate}
           allOrders={processedOrders}
+          onBillGenerated={handleBillGenerated}
         />
       </div>
 
@@ -609,6 +682,7 @@ function OrderColumn({
   orders,
   onUpdate,
   allOrders,
+  onBillGenerated,
 }) {
   return (
     <div className="flex-1 bg-white border-r border-gray-200 last:border-r-0 flex flex-col">
@@ -640,6 +714,7 @@ function OrderColumn({
                 order={order}
                 onUpdate={onUpdate}
                 allOrders={allOrders}
+                onBillGenerated={onBillGenerated}
               />
             ))}
           </div>

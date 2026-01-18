@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Clock,
@@ -17,15 +17,49 @@ import {
   XCircle,
   ChefHat,
   Printer,
+  WifiOff,
+  CloudOff,
+  RefreshCw,
 } from "lucide-react";
 import { 
   createBillFromOrders, 
   createBillFromSelectedItems,
-  fetchBillById 
+  fetchBillById,
+  onSyncEvent, // 🔥 NEW: Listen for sync events
 } from "../../api/billingApi";
 import { useAuth } from "../../context/AuthContext";
+import offlineDB from "../../services/offlineDB";
 
-const OrderCard = React.memo(({ order, onUpdate, allOrders = [] }) => {
+// 🔥 Detect Electron environment
+const isElectron = () => {
+  try {
+    return navigator.userAgent.toLowerCase().indexOf(' electron/') > -1;
+  } catch {
+    return false;
+  }
+};
+
+// 🔥 Online status hook
+const useOnlineStatus = () => {
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  return isOnline;
+};
+
+const OrderCard = React.memo(({ order, onUpdate, allOrders = [], onBillGenerated }) => {
   const [expanded, setExpanded] = useState(false);
   const [generatingBill, setGeneratingBill] = useState(false);
   const [showBillPreview, setShowBillPreview] = useState(false);
@@ -33,8 +67,11 @@ const OrderCard = React.memo(({ order, onUpdate, allOrders = [] }) => {
   const [billData, setBillData] = useState(null);
   const [loadingBill, setLoadingBill] = useState(false);
   const [printBill, setPrintBill] = useState(null);
+  const [error, setError] = useState(null);
+  const [syncStatus, setSyncStatus] = useState(null); // 🔥 NEW: Track sync status
   const navigate = useNavigate();
   const { owner } = useAuth();
+  const isOnline = useOnlineStatus();
 
   const isPending = order.status === "pending";
   const isPreparing = order.status === "confirmed";
@@ -53,6 +90,33 @@ const OrderCard = React.memo(({ order, onUpdate, allOrders = [] }) => {
 
   const hasUnbilledSession =
     Boolean(order.sessionId) && sessionOrders.length > 0 && !isBilled;
+
+  // 🔥 NEW: Listen for sync events
+  useEffect(() => {
+    const unsubscribe = onSyncEvent((event) => {
+      if (event.type === 'bill_synced' && event.serverBill) {
+        // Check if this sync event is for this order
+        const billOrderIds = event.serverBill.orderIds || [];
+        if (billOrderIds.includes(order._id)) {
+          console.log('🔄 Bill synced for this order:', event.serverBill.billNumber);
+          setSyncStatus('synced');
+          
+          // Notify parent to update order
+          if (onBillGenerated) {
+            onBillGenerated(event.serverBill, billOrderIds);
+          }
+          
+          // Clear sync status after 3 seconds
+          setTimeout(() => setSyncStatus(null), 3000);
+        }
+      } else if (event.type === 'sync_completed') {
+        // Clear all sync statuses
+        setTimeout(() => setSyncStatus(null), 1000);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [order._id, onBillGenerated]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -75,49 +139,79 @@ const OrderCard = React.memo(({ order, onUpdate, allOrders = [] }) => {
   };
 
   const getTimeElapsed = () => {
-    if (!order.createdAt) return "";
-    const elapsed = Math.floor((Date.now() - new Date(order.createdAt)) / 60000);
-    if (elapsed < 1) return "now";
-    if (elapsed < 60) return `${elapsed}m`;
-    const hours = Math.floor(elapsed / 60);
-    if (hours < 24) return `${hours}h`;
-    return `${Math.floor(hours / 24)}d`;
+    try {
+      if (!order.createdAt) return "";
+      const elapsed = Math.floor((Date.now() - new Date(order.createdAt)) / 60000);
+      if (elapsed < 1) return "now";
+      if (elapsed < 60) return `${elapsed}m`;
+      const hours = Math.floor(elapsed / 60);
+      if (hours < 24) return `${hours}h`;
+      return `${Math.floor(hours / 24)}d`;
+    } catch {
+      return "";
+    }
   };
 
-  const formatPrice = (price) => (price ? `₹${price.toFixed(0)}` : "₹0");
-
-  const handleBillAction = async () => {
-    const username = order.username || owner?.username;
-    if (!username) return;
-
-    if (isBilled && order.billId) {
-      // Fetch actual bill data from API
-      setLoadingBill(true);
-      try {
-        const response = await fetchBillById(username, order.billId);
-        
-        if (response.success && response.data) {
-          setBillData(response.data);
-          setShowBillDetails(true);
-        } else {
-          console.error("Failed to fetch bill data");
-        }
-      } catch (error) {
-        console.error("Error fetching bill:", error);
-      } finally {
-        setLoadingBill(false);
-      }
-      return;
-    }
-
-    if (hasUnbilledSession) {
-      setShowBillPreview(true);
-      return;
-    }
-
-    // Direct bill generation - no alert
-    setGeneratingBill(true);
+  const formatPrice = (price) => {
     try {
+      return price ? `₹${price.toFixed(0)}` : "₹0";
+    } catch {
+      return "₹0";
+    }
+  };
+
+  // 🔥 FIXED: Handle bill generation with offline support
+  const handleBillAction = useCallback(async () => {
+    const username = order.username || owner?.username;
+    if (!username) {
+      setError("Username not available");
+      return;
+    }
+
+    setError(null);
+
+    try {
+      if (isBilled && order.billId) {
+        // Fetch existing bill
+        setLoadingBill(true);
+        
+        try {
+          // Try offline first
+          let bill = await offlineDB.getBillById(order.billId);
+          
+          // If online and not found offline, fetch from server
+          if (!bill && isOnline) {
+            const response = await fetchBillById(username, order.billId);
+            if (response.success && response.data) {
+              bill = response.data;
+              await offlineDB.saveBill(bill);
+            }
+          }
+          
+          if (bill) {
+            setBillData(bill);
+            setShowBillDetails(true);
+          } else {
+            setError("Bill not found");
+          }
+        } catch (error) {
+          console.error("Error fetching bill:", error);
+          setError(isOnline ? "Failed to fetch bill" : "Bill not available offline");
+        } finally {
+          setLoadingBill(false);
+        }
+        return;
+      }
+
+      if (hasUnbilledSession) {
+        setShowBillPreview(true);
+        return;
+      }
+
+      // Generate new bill
+      setGeneratingBill(true);
+      setSyncStatus('creating');
+      
       const billData = {
         orderIds: [order._id],
         discount: 0,
@@ -131,23 +225,123 @@ const OrderCard = React.memo(({ order, onUpdate, allOrders = [] }) => {
         notes: `Order #${order._id.slice(-6)}`,
       };
 
-      await createBillFromOrders(username, billData);
-      window.location.reload();
+      try {
+        const response = await createBillFromOrders(username, billData);
+        
+        if (response.success && response.data) {
+          console.log('✅ Bill created:', response.data.billNumber);
+          
+          // Save to offline DB
+          await offlineDB.saveBill(response.data);
+          
+          // Update order in offline DB
+          await offlineDB.updateOrder(order._id, {
+            billed: true,
+            billedAt: new Date().toISOString(),
+            billId: response.data._id,
+            billNumber: response.data.billNumber,
+          });
+          
+          // Set sync status
+          if (response.offline) {
+            setSyncStatus('pending');
+          } else {
+            setSyncStatus('synced');
+            setTimeout(() => setSyncStatus(null), 3000);
+          }
+          
+          // Notify parent
+          if (onBillGenerated) {
+            onBillGenerated(response.data, [order._id]);
+          }
+        } else {
+          throw new Error(response.message || "Failed to generate bill");
+        }
+      } catch (error) {
+        console.error("Bill generation error:", error);
+        setError(
+          isOnline 
+            ? "Failed to generate bill. Please try again." 
+            : "Bill saved offline. Will sync when online."
+        );
+        setSyncStatus(null);
+      } finally {
+        setGeneratingBill(false);
+      }
     } catch (error) {
-      console.error("Failed to generate bill:", error);
-    } finally {
+      console.error("Unexpected error in handleBillAction:", error);
+      setError("An unexpected error occurred");
       setGeneratingBill(false);
+      setLoadingBill(false);
+      setSyncStatus(null);
     }
-  };
+  }, [order, owner, isBilled, hasUnbilledSession, isOnline, onBillGenerated]);
 
-  const toggleExpand = () => {
-    setExpanded(!expanded);
-  };
+  const toggleExpand = useCallback(() => {
+    setExpanded(prev => !prev);
+  }, []);
+
+  // Cleanup effect
+  useEffect(() => {
+    return () => {
+      setBillData(null);
+      setPrintBill(null);
+      setError(null);
+      setSyncStatus(null);
+    };
+  }, []);
+
+  // Auto-dismiss errors
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
 
   return (
     <>
       {/* CARD */}
-      <div className="bg-white border border-gray-200 rounded-lg hover:shadow-md transition-all duration-200">
+      <div className="bg-white border border-gray-200 rounded-lg hover:shadow-md transition-all duration-200 relative">
+        {/* Offline indicator */}
+        {!isOnline && (
+          <div className="absolute top-2 right-2 z-10">
+            <div className="flex items-center gap-1 px-2 py-1 bg-yellow-50 border border-yellow-200 rounded-full">
+              <WifiOff className="w-3 h-3 text-yellow-600" />
+              <span className="text-xs text-yellow-700 font-medium">Offline</span>
+            </div>
+          </div>
+        )}
+
+        {/* Sync status indicator */}
+        {syncStatus === 'pending' && (
+          <div className="absolute top-2 right-20 z-10">
+            <div className="flex items-center gap-1 px-2 py-1 bg-blue-50 border border-blue-200 rounded-full">
+              <RefreshCw className="w-3 h-3 text-blue-600 animate-spin" />
+              <span className="text-xs text-blue-700 font-medium">Syncing...</span>
+            </div>
+          </div>
+        )}
+
+        {syncStatus === 'synced' && (
+          <div className="absolute top-2 right-20 z-10">
+            <div className="flex items-center gap-1 px-2 py-1 bg-green-50 border border-green-200 rounded-full">
+              <CheckCircle className="w-3 h-3 text-green-600" />
+              <span className="text-xs text-green-700 font-medium">Synced</span>
+            </div>
+          </div>
+        )}
+
+        {/* Error banner */}
+        {error && (
+          <div className="px-3 py-2 bg-red-50 border-b border-red-200">
+            <div className="flex items-center gap-2">
+              <XCircle className="w-4 h-4 text-red-600 flex-shrink-0" />
+              <p className="text-xs text-red-700">{error}</p>
+            </div>
+          </div>
+        )}
+
         {/* MAIN CONTENT - CLICKABLE */}
         <div className="p-3 cursor-pointer" onClick={toggleExpand}>
           {/* Header Row */}
@@ -214,20 +408,22 @@ const OrderCard = React.memo(({ order, onUpdate, allOrders = [] }) => {
               </span>
             </div>
 
-            {/* Action Buttons - Prevent card toggle when clicking */}
+            {/* Action Buttons */}
             <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
               {isPending && (
                 <>
                   <button
                     onClick={() => onUpdate(order._id, "confirmed")}
-                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded transition-colors flex items-center gap-1"
+                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded transition-colors flex items-center gap-1 disabled:opacity-50"
+                    disabled={!isOnline}
                   >
                     <CheckCircle className="w-3.5 h-3.5" />
                     Accept
                   </button>
                   <button
                     onClick={() => onUpdate(order._id, "cancelled")}
-                    className="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-semibold rounded transition-colors flex items-center gap-1"
+                    className="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-semibold rounded transition-colors flex items-center gap-1 disabled:opacity-50"
+                    disabled={!isOnline}
                   >
                     <XCircle className="w-3.5 h-3.5" />
                     Reject
@@ -238,7 +434,8 @@ const OrderCard = React.memo(({ order, onUpdate, allOrders = [] }) => {
               {isPreparing && (
                 <button
                   onClick={() => onUpdate(order._id, "completed")}
-                  className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded transition-colors flex items-center gap-1"
+                  className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded transition-colors flex items-center gap-1 disabled:opacity-50"
+                  disabled={!isOnline}
                 >
                   <CheckCircle className="w-3.5 h-3.5" />
                   Ready
@@ -251,7 +448,13 @@ const OrderCard = React.memo(({ order, onUpdate, allOrders = [] }) => {
                   disabled={generatingBill}
                   className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold rounded transition-colors disabled:opacity-50 flex items-center gap-1"
                 >
-                  <Receipt className="w-3.5 h-3.5" />
+                  {generatingBill ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  ) : !isOnline ? (
+                    <CloudOff className="w-3.5 h-3.5" />
+                  ) : (
+                    <Receipt className="w-3.5 h-3.5" />
+                  )}
                   {generatingBill
                     ? "..."
                     : hasUnbilledSession
@@ -333,6 +536,7 @@ const OrderCard = React.memo(({ order, onUpdate, allOrders = [] }) => {
                         src={item.imageUrl}
                         alt={item.name}
                         className="w-8 h-8 rounded object-cover flex-shrink-0"
+                        onError={(e) => { e.target.style.display = 'none'; }}
                       />
                     )}
                     <span className="text-gray-700 truncate">{item.name}</span>
@@ -366,15 +570,33 @@ const OrderCard = React.memo(({ order, onUpdate, allOrders = [] }) => {
             setBillData(null);
           }}
           onPrint={(bill) => {
-            setPrintBill(bill);
-            setShowBillDetails(false);
-            setBillData(null);
-            setTimeout(() => {
-              window.print();
-              setTimeout(() => setPrintBill(null), 1000);
-            }, 500);
+            if (isElectron()) {
+              const printContent = document.getElementById('print-bill-content');
+              if (printContent) {
+                window.print();
+              } else {
+                setPrintBill(bill);
+                setTimeout(() => {
+                  window.print();
+                  setTimeout(() => {
+                    setPrintBill(null);
+                    setShowBillDetails(false);
+                    setBillData(null);
+                  }, 1000);
+                }, 100);
+              }
+            } else {
+              setPrintBill(bill);
+              setShowBillDetails(false);
+              setBillData(null);
+              setTimeout(() => {
+                window.print();
+                setTimeout(() => setPrintBill(null), 1000);
+              }, 500);
+            }
           }}
           restaurantName={owner?.restaurantName}
+          isOnline={isOnline}
         />
       )}
 
@@ -392,6 +614,8 @@ const OrderCard = React.memo(({ order, onUpdate, allOrders = [] }) => {
           sessionOrders={sessionOrders}
           onClose={() => setShowBillPreview(false)}
           username={order.username || owner?.username}
+          onBillGenerated={onBillGenerated}
+          isOnline={isOnline}
         />
       )}
     </>
@@ -401,7 +625,14 @@ const OrderCard = React.memo(({ order, onUpdate, allOrders = [] }) => {
 /* ===============================
    BILL DETAILS MODAL
 =============================== */
-const BillDetailsModal = ({ bill, onClose, onPrint, restaurantName }) => {
+const BillDetailsModal = ({ bill, onClose, onPrint, restaurantName, isOnline }) => {
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
+
   const handlePrint = () => {
     onPrint(bill);
   };
@@ -440,13 +671,23 @@ const BillDetailsModal = ({ bill, onClose, onPrint, restaurantName }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div 
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4"
+      style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+    >
       <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl">
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold mb-1">{restaurantName}</h2>
-            <p className="text-blue-100 text-sm">Bill Receipt</p>
+            <p className="text-blue-100 text-sm flex items-center gap-2">
+              Bill Receipt
+              {!isOnline && (
+                <span className="px-2 py-0.5 bg-yellow-500/20 border border-yellow-400/30 rounded text-xs">
+                  Offline Mode
+                </span>
+              )}
+            </p>
           </div>
           <button
             onClick={onClose}
@@ -524,6 +765,7 @@ const BillDetailsModal = ({ bill, onClose, onPrint, restaurantName }) => {
                         src={item.imageUrl}
                         alt={item.name}
                         className="w-12 h-12 rounded object-cover"
+                        onError={(e) => { e.target.style.display = 'none'; }}
                       />
                     )}
                     <div>
@@ -646,7 +888,7 @@ const BillDetailsModal = ({ bill, onClose, onPrint, restaurantName }) => {
 /* ===============================
    SESSION BILL PREVIEW
 =============================== */
-const SessionBillPreview = ({ sessionOrders, onClose, username }) => {
+const SessionBillPreview = ({ sessionOrders, onClose, username, onBillGenerated, isOnline }) => {
   const [selectedOrders, setSelectedOrders] = useState(
     sessionOrders.reduce(
       (acc, order) => ({
@@ -663,6 +905,14 @@ const SessionBillPreview = ({ sessionOrders, onClose, username }) => {
     )
   );
   const [generatingBill, setGeneratingBill] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
 
   const calculateTotal = () => {
     let total = 0;
@@ -702,8 +952,10 @@ const SessionBillPreview = ({ sessionOrders, onClose, username }) => {
     }));
   };
 
+  // 🔥 FIXED: Handle bill generation with offline support
   const handleGenerateBill = async () => {
     const orderItems = [];
+    const affectedOrderIds = [];
 
     sessionOrders.forEach((order) => {
       if (!selectedOrders[order._id]?.included) return;
@@ -717,12 +969,15 @@ const SessionBillPreview = ({ sessionOrders, onClose, username }) => {
 
       if (selectedItemIndexes.length > 0) {
         orderItems.push({ orderId: order._id, itemIndexes: selectedItemIndexes });
+        affectedOrderIds.push(order._id);
       }
     });
 
     if (orderItems.length === 0) return;
 
     setGeneratingBill(true);
+    setError(null);
+
     try {
       const billData = {
         orderItems,
@@ -737,17 +992,59 @@ const SessionBillPreview = ({ sessionOrders, onClose, username }) => {
         notes: `Session: ${orderItems.length} orders, ${itemCount} items`,
       };
 
-      await createBillFromSelectedItems(username, billData);
-      window.location.reload();
+      const response = await createBillFromSelectedItems(username, billData);
+      
+      if (response.success && response.data) {
+        console.log('✅ Session bill created:', response.data.billNumber);
+        
+        // Save to offline DB
+        await offlineDB.saveBill(response.data);
+        
+        // Update orders in offline DB
+        for (const orderId of affectedOrderIds) {
+          await offlineDB.updateOrder(orderId, {
+            billed: true,
+            billedAt: new Date().toISOString(),
+            billId: response.data._id,
+            billNumber: response.data.billNumber,
+          });
+        }
+        
+        // 🔥 CRITICAL: Notify parent ALWAYS (online or offline)
+        if (onBillGenerated) {
+          onBillGenerated(response.data, affectedOrderIds);
+        }
+        
+        // 🔥 CRITICAL: Close modal ALWAYS (online or offline)
+        onClose();
+      } else {
+        throw new Error(response.message || "Failed to generate bill");
+      }
     } catch (error) {
       console.error("Failed to generate bill:", error);
+      
+      // Don't block on errors - still close if we have partial success
+      if (error.message && error.message.includes('offline')) {
+        // Offline error - still close modal
+        onClose();
+      } else {
+        // Real error - show message but allow retry
+        setError(
+          isOnline 
+            ? "Failed to generate bill. Please try again." 
+            : "Bill saved offline. Will sync when online."
+        );
+      }
     } finally {
       setGeneratingBill(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div 
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4"
+      style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+    >
       <div className="bg-white rounded-xl w-full max-w-3xl max-h-[85vh] overflow-hidden border border-gray-200 shadow-2xl">
         {/* Header */}
         <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between">
@@ -756,8 +1053,13 @@ const SessionBillPreview = ({ sessionOrders, onClose, username }) => {
               <Users className="w-5 h-5 text-purple-600" />
               Session Bill
             </h2>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-2">
               {sessionOrders.length} orders
+              {!isOnline && (
+                <span className="px-2 py-0.5 bg-yellow-50 border border-yellow-200 rounded text-yellow-700">
+                  Offline
+                </span>
+              )}
             </p>
           </div>
           <button
@@ -768,8 +1070,18 @@ const SessionBillPreview = ({ sessionOrders, onClose, username }) => {
           </button>
         </div>
 
+        {/* Error banner */}
+        {error && (
+          <div className="px-4 py-3 bg-red-50 border-b border-red-200">
+            <div className="flex items-center gap-2">
+              <XCircle className="w-4 h-4 text-red-600 flex-shrink-0" />
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          </div>
+        )}
+
         {/* Orders */}
-        <div className="p-4 space-y-3 overflow-y-auto max-h-[calc(85vh-160px)]">
+        <div className="p-4 space-y-3 overflow-y-auto max-h-[calc(85vh-200px)]">
           {sessionOrders.map((order) => {
             const isOrderIncluded = selectedOrders[order._id]?.included;
 
@@ -831,6 +1143,7 @@ const SessionBillPreview = ({ sessionOrders, onClose, username }) => {
                               src={item.imageUrl}
                               alt={item.name}
                               className="w-8 h-8 rounded object-cover"
+                              onError={(e) => { e.target.style.display = 'none'; }}
                             />
                           )}
                           <div className="flex-1 min-w-0">
@@ -880,7 +1193,11 @@ const SessionBillPreview = ({ sessionOrders, onClose, username }) => {
               disabled={generatingBill || itemCount === 0}
               className="flex-1 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              <Receipt className="w-4 h-4" />
+              {generatingBill ? (
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              ) : (
+                <Receipt className="w-4 h-4" />
+              )}
               {generatingBill ? "Generating..." : `Generate (${itemCount})`}
             </button>
           </div>
@@ -902,7 +1219,7 @@ const PrintBillComponent = ({ bill, restaurantName }) => {
       : 0;
 
   return (
-    <div className="print-only fixed inset-0 bg-white z-[9999]">
+    <div id="print-bill-content" className="print-only fixed inset-0 bg-white z-[99999]">
       <style>{`
         @media print {
           .print-only {
