@@ -20,17 +20,19 @@ import {
   WifiOff,
   CloudOff,
   RefreshCw,
+  Package,
+  Truck,
 } from "lucide-react";
 import { 
   createBillFromOrders, 
   createBillFromSelectedItems,
   fetchBillById,
-  onSyncEvent, // 🔥 NEW: Listen for sync events
+  onSyncEvent,
 } from "../../api/billingApi";
 import { useAuth } from "../../context/AuthContext";
 import offlineDB from "../../services/offlineDB";
 
-// 🔥 Detect Electron environment
+// Detect Electron environment
 const isElectron = () => {
   try {
     return navigator.userAgent.toLowerCase().indexOf(' electron/') > -1;
@@ -39,7 +41,7 @@ const isElectron = () => {
   }
 };
 
-// 🔥 Online status hook
+// Online status hook
 const useOnlineStatus = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
@@ -68,7 +70,7 @@ const OrderCard = React.memo(({ order, onUpdate, allOrders = [], onBillGenerated
   const [loadingBill, setLoadingBill] = useState(false);
   const [printBill, setPrintBill] = useState(null);
   const [error, setError] = useState(null);
-  const [syncStatus, setSyncStatus] = useState(null); // 🔥 NEW: Track sync status
+  const [syncStatus, setSyncStatus] = useState(null);
   const navigate = useNavigate();
   const { owner } = useAuth();
   const isOnline = useOnlineStatus();
@@ -79,38 +81,39 @@ const OrderCard = React.memo(({ order, onUpdate, allOrders = [], onBillGenerated
   const isCancelled = order.status === "cancelled";
   const isBilled = Boolean(order.billId || order.billed === true);
 
-  // Filter unbilled session orders
-  const sessionOrders = allOrders.filter(
-    (o) =>
-      o.sessionId === order.sessionId &&
-      o.status === "completed" &&
-      !o.billed &&
-      !o.billId
-  );
+  // Get order type
+  const orderType = order.orderType || "DINE_IN"; // Default to DINE_IN for backward compatibility
+
+  // Filter unbilled session orders (DINE_IN only)
+  const sessionOrders = orderType === "DINE_IN" 
+    ? allOrders.filter(
+        (o) =>
+          o.sessionId === order.sessionId &&
+          o.status === "completed" &&
+          !o.billed &&
+          !o.billId
+      )
+    : [];
 
   const hasUnbilledSession =
-    Boolean(order.sessionId) && sessionOrders.length > 0 && !isBilled;
+    orderType === "DINE_IN" && Boolean(order.sessionId) && sessionOrders.length > 0 && !isBilled;
 
-  // 🔥 NEW: Listen for sync events
+  // Listen for sync events
   useEffect(() => {
     const unsubscribe = onSyncEvent((event) => {
       if (event.type === 'bill_synced' && event.serverBill) {
-        // Check if this sync event is for this order
         const billOrderIds = event.serverBill.orderIds || [];
         if (billOrderIds.includes(order._id)) {
           console.log('🔄 Bill synced for this order:', event.serverBill.billNumber);
           setSyncStatus('synced');
           
-          // Notify parent to update order
           if (onBillGenerated) {
             onBillGenerated(event.serverBill, billOrderIds);
           }
           
-          // Clear sync status after 3 seconds
           setTimeout(() => setSyncStatus(null), 3000);
         }
       } else if (event.type === 'sync_completed') {
-        // Clear all sync statuses
         setTimeout(() => setSyncStatus(null), 1000);
       }
     });
@@ -160,7 +163,7 @@ const OrderCard = React.memo(({ order, onUpdate, allOrders = [], onBillGenerated
     }
   };
 
-  // 🔥 FIXED: Handle bill generation with offline support
+  // Handle bill generation with offline support
   const handleBillAction = useCallback(async () => {
     const username = order.username || owner?.username;
     if (!username) {
@@ -172,14 +175,11 @@ const OrderCard = React.memo(({ order, onUpdate, allOrders = [], onBillGenerated
 
     try {
       if (isBilled && order.billId) {
-        // Fetch existing bill
         setLoadingBill(true);
         
         try {
-          // Try offline first
           let bill = await offlineDB.getBillById(order.billId);
           
-          // If online and not found offline, fetch from server
           if (!bill && isOnline) {
             const response = await fetchBillById(username, order.billId);
             if (response.success && response.data) {
@@ -231,10 +231,8 @@ const OrderCard = React.memo(({ order, onUpdate, allOrders = [], onBillGenerated
         if (response.success && response.data) {
           console.log('✅ Bill created:', response.data.billNumber);
           
-          // Save to offline DB
           await offlineDB.saveBill(response.data);
           
-          // Update order in offline DB
           await offlineDB.updateOrder(order._id, {
             billed: true,
             billedAt: new Date().toISOString(),
@@ -242,7 +240,6 @@ const OrderCard = React.memo(({ order, onUpdate, allOrders = [], onBillGenerated
             billNumber: response.data.billNumber,
           });
           
-          // Set sync status
           if (response.offline) {
             setSyncStatus('pending');
           } else {
@@ -250,7 +247,6 @@ const OrderCard = React.memo(({ order, onUpdate, allOrders = [], onBillGenerated
             setTimeout(() => setSyncStatus(null), 3000);
           }
           
-          // Notify parent
           if (onBillGenerated) {
             onBillGenerated(response.data, [order._id]);
           }
@@ -347,10 +343,33 @@ const OrderCard = React.memo(({ order, onUpdate, allOrders = [], onBillGenerated
           {/* Header Row */}
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2 flex-1 min-w-0">
-              <MapPin className="w-4 h-4 text-blue-600 flex-shrink-0" />
-              <span className="text-sm font-bold text-gray-900">
-                Table {order.tableNumber}
-              </span>
+              {/* Order Type Badge */}
+              {orderType === "DINE_IN" && (
+                <>
+                  <MapPin className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                  <span className="text-sm font-bold text-gray-900">
+                    Table {order.tableNumber}
+                  </span>
+                </>
+              )}
+              {orderType === "TAKEAWAY" && (
+                <>
+                  <Package className="w-4 h-4 text-orange-600 flex-shrink-0" />
+                  <span className="text-sm font-bold text-gray-900">
+                    Takeaway
+                  </span>
+                </>
+              )}
+              {orderType === "ONLINE" && (
+                <>
+                  <Truck className="w-4 h-4 text-green-600 flex-shrink-0" />
+                  <span className="text-sm font-bold text-gray-900">
+                    Delivery
+                  </span>
+                </>
+              )}
+              
+              {/* Status Badge */}
               <span
                 className={`px-2 py-0.5 rounded text-xs font-semibold border ${getStatusColor(
                   order.status
@@ -358,6 +377,8 @@ const OrderCard = React.memo(({ order, onUpdate, allOrders = [], onBillGenerated
               >
                 {getStatusLabel(order.status)}
               </span>
+              
+              {/* Session Badge (DINE_IN only) */}
               {hasUnbilledSession && (
                 <span className="px-2 py-0.5 rounded text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200 flex items-center gap-1">
                   <Users className="w-3 h-3" />
@@ -489,6 +510,26 @@ const OrderCard = React.memo(({ order, onUpdate, allOrders = [], onBillGenerated
               </span>
             </div>
 
+            {/* Order Type Details */}
+            {orderType === "ONLINE" && order.deliveryAddress && (
+              <div className="flex items-start gap-2 text-xs p-2 bg-green-50 border border-green-200 rounded">
+                <Truck className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="font-medium text-green-700 mb-1">Delivery Address</p>
+                  <p className="text-gray-700">
+                    {order.deliveryAddress.line1}
+                    {order.deliveryAddress.line2 && `, ${order.deliveryAddress.line2}`}
+                  </p>
+                  <p className="text-gray-600">
+                    {order.deliveryAddress.city}, {order.deliveryAddress.state} - {order.deliveryAddress.pincode}
+                  </p>
+                  {order.deliveryAddress.landmark && (
+                    <p className="text-gray-600 italic">Near: {order.deliveryAddress.landmark}</p>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Phone */}
             {order.phoneNumber && (
               <div className="flex items-center gap-2 text-xs">
@@ -510,7 +551,7 @@ const OrderCard = React.memo(({ order, onUpdate, allOrders = [], onBillGenerated
               </span>
             </div>
 
-            {/* Session Info */}
+            {/* Session Info (DINE_IN only) */}
             {hasUnbilledSession && (
               <div className="flex items-center gap-2 text-xs p-2 bg-purple-50 border border-purple-200 rounded">
                 <Users className="w-3.5 h-3.5 text-purple-600" />
@@ -952,7 +993,6 @@ const SessionBillPreview = ({ sessionOrders, onClose, username, onBillGenerated,
     }));
   };
 
-  // 🔥 FIXED: Handle bill generation with offline support
   const handleGenerateBill = async () => {
     const orderItems = [];
     const affectedOrderIds = [];
@@ -997,10 +1037,8 @@ const SessionBillPreview = ({ sessionOrders, onClose, username, onBillGenerated,
       if (response.success && response.data) {
         console.log('✅ Session bill created:', response.data.billNumber);
         
-        // Save to offline DB
         await offlineDB.saveBill(response.data);
         
-        // Update orders in offline DB
         for (const orderId of affectedOrderIds) {
           await offlineDB.updateOrder(orderId, {
             billed: true,
@@ -1010,12 +1048,10 @@ const SessionBillPreview = ({ sessionOrders, onClose, username, onBillGenerated,
           });
         }
         
-        // 🔥 CRITICAL: Notify parent ALWAYS (online or offline)
         if (onBillGenerated) {
           onBillGenerated(response.data, affectedOrderIds);
         }
         
-        // 🔥 CRITICAL: Close modal ALWAYS (online or offline)
         onClose();
       } else {
         throw new Error(response.message || "Failed to generate bill");
@@ -1023,12 +1059,9 @@ const SessionBillPreview = ({ sessionOrders, onClose, username, onBillGenerated,
     } catch (error) {
       console.error("Failed to generate bill:", error);
       
-      // Don't block on errors - still close if we have partial success
       if (error.message && error.message.includes('offline')) {
-        // Offline error - still close modal
         onClose();
       } else {
-        // Real error - show message but allow retry
         setError(
           isOnline 
             ? "Failed to generate bill. Please try again." 
