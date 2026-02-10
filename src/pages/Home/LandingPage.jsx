@@ -1504,7 +1504,7 @@ const LandingPage = () => {
                   <div className="text-xs text-slate-500 font-medium">Visual Accuracy</div>
                 </div>
                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex-1">
-                  <div className="text-2xl font-bold text-slate-900">1.0s</div>
+                  <div className="text-2xl font-bold text-slate-900">50ms</div>
                   <div className="text-xs text-slate-500 font-medium">Latency</div>
                 </div>
               </div>
