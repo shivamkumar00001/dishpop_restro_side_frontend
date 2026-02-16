@@ -64,7 +64,7 @@ export default function Sidebar() {
     },
 
     // 📋 COMPLIANCE & REPORTING (Weekly/Monthly)
-    // {
+    {
       label: "GST Audit",
       icon: ClipboardDocumentCheckIcon,
       path: `${basePath}/gst-audit`,
