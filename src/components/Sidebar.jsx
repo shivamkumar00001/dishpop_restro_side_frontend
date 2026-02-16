@@ -49,30 +49,30 @@ export default function Sidebar() {
       icon: ClipboardDocumentListIcon,
       path: `${basePath}/orders`,
     },
-    // {
-    //   label: "Billing",
-    //   icon: DocumentTextIcon,
-    //   path: `${basePath}/billing`,
-    // },
+    {
+      label: "Billing",
+      icon: DocumentTextIcon,
+      path: `${basePath}/billing`,
+    },
 
     // 📊 MANAGEMENT (Regular Use)
     { label: "Digital Menu", icon: CubeIcon, path: `${basePath}/dishes` },
-    // {
-    //   label: "Customer Analytics",
-    //   icon: ChartBarIcon,
-    //   path: `${basePath}/analytics`,
-    // },
+    {
+      label: "Customer Analytics",
+      icon: ChartBarIcon,
+      path: `${basePath}/analytics`,
+    },
 
     // 📋 COMPLIANCE & REPORTING (Weekly/Monthly)
     // {
-    //   label: "GST Audit",
-    //   icon: ClipboardDocumentCheckIcon,
-    //   path: `${basePath}/gst-audit`,
-    // },
+      label: "GST Audit",
+      icon: ClipboardDocumentCheckIcon,
+      path: `${basePath}/gst-audit`,
+    },
 
     // ⚙️ SETUP & CONFIGURATION (Occasional Use)
-    // { label: "Get QR", icon: QrCodeIcon, path: `${basePath}/qr` },
-    // { label: "Subscription", icon: BellIcon, path: `${basePath}/subscribe` },
+    { label: "Get QR", icon: QrCodeIcon, path: `${basePath}/qr` },
+    { label: "Subscription", icon: BellIcon, path: `${basePath}/subscribe` },
     { label: "Settings", icon: Cog6ToothIcon, path: `/settings` },
   ];
 
